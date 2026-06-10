@@ -3,7 +3,8 @@
 --
 -- Creates the "Demo Brunch" restaurant with two tables, three categories and
 -- three products, fully translated (PT/EN/ES/FR). Demo QR tokens are fixed so
--- the landing page can link to them:
+-- local testing has stable URLs (the public landing page does NOT link to
+-- them):
 --
 --   http://localhost:3000/t/demo-mesa-1-k3v9q2x8w7z4
 --   http://localhost:3000/t/demo-mesa-2-p5r8t1y6u3s0

@@ -683,7 +683,7 @@ export function PublicMenuClient({ data }: { data: PublicMenuData }) {
                   type="button"
                   onClick={submitOrder}
                   disabled={submitting || submitBlocked}
-                  className="mt-4 flex min-h-13 w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-base font-bold shadow-md transition-transform active:scale-[0.99] disabled:opacity-50"
+                  className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-base font-bold shadow-md transition-transform active:scale-[0.99] disabled:opacity-50"
                   style={{ backgroundColor: primary, color: onPrimary }}
                 >
                   {submitting ? (

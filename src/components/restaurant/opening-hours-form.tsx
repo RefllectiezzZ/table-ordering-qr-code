@@ -115,34 +115,37 @@ export function OpeningHoursForm({
                 day.isClosed && "pointer-events-none opacity-40",
               )}
             >
-              <Input
-                type="time"
-                aria-label={`${DAY_LABELS[day.weekday]}: abertura`}
-                value={day.opensAt}
-                onChange={(e) => updateDay(day.weekday, { opensAt: e.target.value })}
-                className="w-28"
-                disabled={day.isClosed}
-              />
+              <div className="w-28">
+                <Input
+                  type="time"
+                  aria-label={`${DAY_LABELS[day.weekday]}: abertura`}
+                  value={day.opensAt}
+                  onChange={(e) => updateDay(day.weekday, { opensAt: e.target.value })}
+                  disabled={day.isClosed}
+                />
+              </div>
               <span className="text-xs text-slate-400">às</span>
-              <Input
-                type="time"
-                aria-label={`${DAY_LABELS[day.weekday]}: fecho`}
-                value={day.closesAt}
-                onChange={(e) => updateDay(day.weekday, { closesAt: e.target.value })}
-                className="w-28"
-                disabled={day.isClosed}
-              />
+              <div className="w-28">
+                <Input
+                  type="time"
+                  aria-label={`${DAY_LABELS[day.weekday]}: fecho`}
+                  value={day.closesAt}
+                  onChange={(e) => updateDay(day.weekday, { closesAt: e.target.value })}
+                  disabled={day.isClosed}
+                />
+              </div>
             </div>
 
-            <Input
-              type="text"
-              aria-label={`${DAY_LABELS[day.weekday]}: nota`}
-              placeholder="Nota (opcional)"
-              maxLength={200}
-              value={day.notes}
-              onChange={(e) => updateDay(day.weekday, { notes: e.target.value })}
-              className="min-w-36 flex-1"
-            />
+            <div className="min-w-36 flex-1">
+              <Input
+                type="text"
+                aria-label={`${DAY_LABELS[day.weekday]}: nota`}
+                placeholder="Nota (opcional)"
+                maxLength={200}
+                value={day.notes}
+                onChange={(e) => updateDay(day.weekday, { notes: e.target.value })}
+              />
+            </div>
           </li>
         ))}
       </ul>
