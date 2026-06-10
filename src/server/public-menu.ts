@@ -1,7 +1,9 @@
 import "server-only";
 
+import { evaluateOpeningHours } from "@/lib/opening-hours";
 import { isValidPublicTokenFormat } from "@/lib/security/tokens";
 import { createServiceRoleSupabaseClient } from "@/lib/supabase/service-role";
+import { fetchOpeningHours } from "@/server/opening-hours";
 import type { Language } from "@/types/database";
 import type {
   PublicCategory,
@@ -31,6 +33,7 @@ interface PublicRestaurantRow {
   enabled_languages: Language[];
   accepts_orders: boolean;
   paused_message: string | null;
+  timezone: string;
 }
 
 /**
@@ -60,7 +63,7 @@ export async function resolvePublicMenu(token: string): Promise<PublicMenuResolu
   const { data: restaurant } = await supabase
     .from("restaurants")
     .select(
-      "id, name, status, logo_url, cover_image_url, primary_color, secondary_color, background_color, welcome_message, default_language, enabled_languages, accepts_orders, paused_message",
+      "id, name, status, logo_url, cover_image_url, primary_color, secondary_color, background_color, welcome_message, default_language, enabled_languages, accepts_orders, paused_message, timezone",
     )
     .eq("id", table.restaurant_id)
     .maybeSingle<PublicRestaurantRow>();
@@ -68,7 +71,7 @@ export async function resolvePublicMenu(token: string): Promise<PublicMenuResolu
   if (!restaurant) return { state: "invalid_token" };
   if (restaurant.status !== "active") return { state: "restaurant_unavailable" };
 
-  const [{ data: categories }, { data: products }] = await Promise.all([
+  const [{ data: categories }, { data: products }, openingHours] = await Promise.all([
     supabase
       .from("menu_categories")
       .select("id, sort_order, menu_category_translations(language, name)")
@@ -83,7 +86,12 @@ export async function resolvePublicMenu(token: string): Promise<PublicMenuResolu
       .eq("restaurant_id", restaurant.id)
       .eq("is_active", true)
       .order("sort_order", { ascending: true }),
+    fetchOpeningHours(supabase, restaurant.id),
   ]);
+
+  // Opening status is evaluated server-side in the restaurant's timezone;
+  // only the public-safe summary leaves this function.
+  const opening = evaluateOpeningHours(openingHours, new Date(), restaurant.timezone);
 
   type CategoryQueryRow = {
     id: string;
@@ -191,6 +199,11 @@ export async function resolvePublicMenu(token: string): Promise<PublicMenuResolu
       table: {
         tableNumber: table.table_number,
         label: table.label,
+      },
+      opening: {
+        configured: opening.configured,
+        isOpenNow: opening.isOpenNow,
+        today: opening.today,
       },
       categories: publicCategories.filter((c) => c.products.length > 0),
     },

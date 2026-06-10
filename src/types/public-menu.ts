@@ -26,6 +26,18 @@ export interface PublicTableInfo {
   label: string | null;
 }
 
+/**
+ * Public-safe opening status, computed server-side in the restaurant's
+ * timezone. Exposes only what the customer needs: whether ordering is open
+ * right now and today's interval. "Not configured" is never surfaced to
+ * customers (configured=false simply hides the badge and allows orders).
+ */
+export interface PublicOpeningInfo {
+  configured: boolean;
+  isOpenNow: boolean;
+  today: { isClosed: boolean; opensAt: string | null; closesAt: string | null } | null;
+}
+
 export interface PublicProduct {
   id: string;
   priceCents: number;
@@ -48,6 +60,7 @@ export interface PublicMenuData {
   token: string;
   restaurant: PublicRestaurantBranding;
   table: PublicTableInfo;
+  opening: PublicOpeningInfo;
   categories: PublicCategory[];
 }
 
