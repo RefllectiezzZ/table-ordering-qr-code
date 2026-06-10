@@ -27,11 +27,34 @@ anything that touches data access.
   audit-log writes, admin user creation (Supabase Auth admin API).
 - SECURITY DEFINER helper functions only reflect data about the calling user and
   have EXECUTE revoked from `anon`/`public`.
+- **Column-level privilege hardening on `orders`**
+  (`supabase/migrations/20260610000004_harden_order_status_updates.sql`): the
+  `authenticated` role may only UPDATE `orders.status` — RLS scopes the rows,
+  the column grant scopes the columns. A restaurant member using their session
+  directly against PostgREST cannot rewrite `customer_note`, `table_id`,
+  `client_order_token` or any other order column, even within their own
+  restaurant. `anon` additionally has all write privileges on `orders` revoked.
+  The status API is unaffected (it only ever updates `status`); the service
+  role (public order creation) bypasses grants as before.
 
 ## HTTP surface
 
 - All mutations are POST route handlers under `/api/**` with zod validation
   (`src/lib/validation/schemas.ts`). No GET mutations.
+- **Same-origin guard on every private mutation** (`src/lib/security/origin.ts`,
+  applied to all `/api/admin/**` and `/api/restaurant/**` POST handlers and to
+  `POST /auth/signout`): unsafe methods must carry an `Origin` matching the
+  request host, or — when `Origin` is absent — a `Sec-Fetch-Site` of
+  `same-origin`/`same-site`/`none`. Requests with neither header are rejected
+  with a generic 403. This is CSRF defense in depth on top of SameSite auth
+  cookies. `POST /api/public/orders` is deliberately exempt (unauthenticated,
+  token-scoped) and is rate-limited instead.
+- **Public order rate limiting** (`src/lib/security/rate-limit.ts`): in-memory
+  sliding window, 20 submissions per 60s per `IP + table_token`, returning 429
+  with `Retry-After`. Generous enough that idempotent retries of the same
+  `client_order_token` are never blocked. This is a single-process baseline —
+  a distributed limiter (Redis/Upstash or platform-level) remains a launch
+  gate before wider public scale.
 - Never trust from the client: `restaurant_id`, `table_id`, product prices,
   roles, statuses. They are derived server-side from the session or the QR token.
 - Order item prices are read from `menu_products` at insert time
@@ -68,8 +91,9 @@ anything that touches data access.
 
 ## Documented follow-ups (not yet implemented)
 
-- Rate limiting on `POST /api/public/orders` (per-IP/per-token) — required before
-  paid launch; mitigate today by suspending abusive restaurants/tables.
+- Distributed rate limiting on `POST /api/public/orders` (Redis/Upstash or
+  Vercel/Cloudflare) — the current in-memory limiter is per-process
+  best-effort and resets on deploy; replace before wider public launch.
 - MFA for restaurant/admin accounts — launch gate for production hardening.
 - Kitchen sound notification (visual highlight implemented; audio needs a user
   gesture to satisfy browser autoplay rules).

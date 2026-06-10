@@ -5,12 +5,20 @@ must be resolved before paid/public launch.
 
 ## Security / hardening
 
-- **No rate limiting** on `POST /api/public/orders` or `/login`. A hostile client
-  could spam orders for a known token. Mitigations today: idempotency token,
-  strict validation, table deactivation, restaurant suspension. **Launch gate.**
+- **Rate limiting on `POST /api/public/orders` is a single-process, in-memory
+  baseline** (20/min per IP + table token, 429 + `Retry-After`). It resets on
+  deploy/restart and is not shared across serverless instances, so it is
+  best-effort for MVP/pilot only. A distributed limiter (Redis/Upstash or
+  Vercel/Cloudflare) is still required before wider public scale.
+  **Launch gate.** `/login` has no app-level limiter (Supabase Auth applies its
+  own rate limits upstream).
 - **No MFA** for restaurant/admin accounts. Documented as future hardening.
   **Launch gate.**
 - **No CAPTCHA / abuse heuristics** on the public order endpoint.
+- The same-origin guard on private mutations relies on `Origin` /
+  `Sec-Fetch-Site` headers (sent by all modern browsers); it intentionally
+  rejects non-browser clients without those headers — there is no separate
+  API-token surface for programmatic access in the MVP.
 - Audit logging covers main mutations but is best-effort (failures don't block
   the mutation and are not retried).
 

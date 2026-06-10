@@ -16,7 +16,11 @@ Checklist that must be fully green before charging customers / public launch.
 
 - [ ] RLS enabled on all tables in production (verify with Supabase advisors)
 - [ ] Supabase security advisors run with no critical findings
-- [ ] Rate limiting on `POST /api/public/orders` implemented or WAF-level mitigation
+- [x] Baseline rate limiting on `POST /api/public/orders` (in-memory, 20/min
+      per IP + table token) — implemented in the MVP
+- [ ] Production-grade **distributed** rate limiting (Redis/Upstash or
+      Vercel/Cloudflare edge) replacing the in-memory baseline before wider
+      public scale
 - [ ] MFA enabled/offered for admin and restaurant accounts (future hardening)
 - [ ] Logs checked: no secrets, no tokens, no customer PII
 - [ ] First platform admin provisioned through a controlled, documented process
