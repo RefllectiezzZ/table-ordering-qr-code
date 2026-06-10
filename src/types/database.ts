@@ -50,6 +50,14 @@ export interface RestaurantRow {
   paused_message: string | null;
   /** IANA timezone used to evaluate opening hours (default Europe/Lisbon). */
   timezone: string;
+  /** Internal public menu template preset (platform admin). */
+  public_menu_template: string;
+  public_menu_density: string;
+  public_menu_card_style: string;
+  public_menu_hero_style: string;
+  public_menu_background_style: string;
+  public_menu_cart_style: string;
+  public_menu_show_images: boolean;
   created_at: string;
   updated_at: string;
 }

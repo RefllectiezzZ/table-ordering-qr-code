@@ -1,3 +1,11 @@
+import type {
+  PublicMenuBackgroundStyle,
+  PublicMenuCardStyle,
+  PublicMenuCartStyle,
+  PublicMenuDensity,
+  PublicMenuHeroStyle,
+  PublicMenuTemplate,
+} from "@/lib/public-menu/templates";
 import type { Language, OrderStatus } from "@/types/database";
 
 /**
@@ -19,6 +27,14 @@ export interface PublicRestaurantBranding {
   /** False while the restaurant has paused ordering (menu stays visible). */
   acceptsOrders: boolean;
   pausedMessage: string | null;
+  /** Safe internal template preset (validated server-side). */
+  publicMenuTemplate: PublicMenuTemplate;
+  publicMenuDensity: PublicMenuDensity;
+  publicMenuCardStyle: PublicMenuCardStyle;
+  publicMenuHeroStyle: PublicMenuHeroStyle;
+  publicMenuBackgroundStyle: PublicMenuBackgroundStyle;
+  publicMenuCartStyle: PublicMenuCartStyle;
+  publicMenuShowImages: boolean;
 }
 
 export interface PublicTableInfo {

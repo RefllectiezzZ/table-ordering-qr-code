@@ -17,7 +17,6 @@ const OWNER_LINKS: NavLink[] = [
   { href: "/restaurant/menu", label: "Menu" },
   { href: "/restaurant/categories", label: "Categorias" },
   { href: "/restaurant/products", label: "Produtos" },
-  { href: "/restaurant/translations", label: "Traduções" },
   { href: "/restaurant/branding", label: "Marca" },
   { href: "/restaurant/settings", label: "Definições" },
 ];

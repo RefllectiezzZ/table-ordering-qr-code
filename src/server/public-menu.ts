@@ -1,6 +1,7 @@
 import "server-only";
 
 import { evaluateOpeningHours } from "@/lib/opening-hours";
+import { resolvePublicMenuTheme } from "@/lib/public-menu/templates";
 import { isValidPublicTokenFormat } from "@/lib/security/tokens";
 import { createServiceRoleSupabaseClient } from "@/lib/supabase/service-role";
 import { fetchOpeningHours } from "@/server/opening-hours";
@@ -34,6 +35,13 @@ interface PublicRestaurantRow {
   accepts_orders: boolean;
   paused_message: string | null;
   timezone: string;
+  public_menu_template: string;
+  public_menu_density: string;
+  public_menu_card_style: string;
+  public_menu_hero_style: string;
+  public_menu_background_style: string;
+  public_menu_cart_style: string;
+  public_menu_show_images: boolean;
 }
 
 /**
@@ -63,7 +71,7 @@ export async function resolvePublicMenu(token: string): Promise<PublicMenuResolu
   const { data: restaurant } = await supabase
     .from("restaurants")
     .select(
-      "id, name, status, logo_url, cover_image_url, primary_color, secondary_color, background_color, welcome_message, default_language, enabled_languages, accepts_orders, paused_message, timezone",
+      "id, name, status, logo_url, cover_image_url, primary_color, secondary_color, background_color, welcome_message, default_language, enabled_languages, accepts_orders, paused_message, timezone, public_menu_template, public_menu_density, public_menu_card_style, public_menu_hero_style, public_menu_background_style, public_menu_cart_style, public_menu_show_images",
     )
     .eq("id", table.restaurant_id)
     .maybeSingle<PublicRestaurantRow>();
@@ -179,6 +187,16 @@ export async function resolvePublicMenu(token: string): Promise<PublicMenuResolu
       ? restaurant.enabled_languages
       : [restaurant.default_language];
 
+  const theme = resolvePublicMenuTheme({
+    public_menu_template: restaurant.public_menu_template,
+    public_menu_density: restaurant.public_menu_density,
+    public_menu_card_style: restaurant.public_menu_card_style,
+    public_menu_hero_style: restaurant.public_menu_hero_style,
+    public_menu_background_style: restaurant.public_menu_background_style,
+    public_menu_cart_style: restaurant.public_menu_cart_style,
+    public_menu_show_images: restaurant.public_menu_show_images,
+  });
+
   return {
     state: "ok",
     data: {
@@ -195,6 +213,13 @@ export async function resolvePublicMenu(token: string): Promise<PublicMenuResolu
         enabledLanguages,
         acceptsOrders: restaurant.accepts_orders,
         pausedMessage: restaurant.paused_message,
+        publicMenuTemplate: theme.template,
+        publicMenuDensity: theme.density,
+        publicMenuCardStyle: theme.cardStyle,
+        publicMenuHeroStyle: theme.heroStyle,
+        publicMenuBackgroundStyle: theme.backgroundStyle,
+        publicMenuCartStyle: theme.cartStyle,
+        publicMenuShowImages: theme.showImages,
       },
       table: {
         tableNumber: table.table_number,

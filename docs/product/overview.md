@@ -26,9 +26,11 @@ Multi-tenant QR table ordering SaaS for small restaurants.
 | Role | Scope | Capabilities |
 | --- | --- | --- |
 | `platform_admin` | All restaurants | Create/edit/suspend restaurants, manage restaurant users, view all data for support |
-| `restaurant_owner` | Exactly one restaurant | Manage menu, categories, products, translations, tables/QR codes, branding, orders |
+| `restaurant_owner` | Exactly one restaurant | Manage menu, categories, products, inline translations, tables/QR codes, branding (colors/languages), orders |
 | `restaurant_staff` | Exactly one restaurant | View and update orders; read-only menu overview |
 | `public_customer` | One table via QR token | View public menu, submit an order for that table |
+
+Platform admins additionally manage **translation CSV import/export** and **public menu template/branding** presets per restaurant.
 
 ## Main flows
 
@@ -53,9 +55,12 @@ Multi-tenant QR table ordering SaaS for small restaurants.
    the floor view; device authorizations are revoked and the next group starts
    with a fresh confirmation.
 7. **Translations**: products are created in Portuguese (base language,
-   required); EN/ES/FR are optional. Owner exports one multi-language CSV →
-   translates offline → imports with preview → commits explicitly. See
-   `docs/imports/translation-csv.md`.
+   required); EN/ES/FR are optional inline in the product form. Platform admin
+   exports one multi-language CSV → translates offline → imports with preview →
+   commits explicitly. See `docs/imports/translation-csv.md`.
+8. **Public menu templates**: platform admin selects an internal visual template
+   and layout options per restaurant at `/admin/restaurants/[id]/branding`. The
+   public menu at `/t/[token]` renders the chosen preset with shared order logic.
 
 ## MVP scope
 
@@ -64,8 +69,9 @@ In scope:
 - Supabase Auth (email/password), Postgres with RLS, multi-tenant isolation
 - Public QR menu with branding, language switcher, cart, order submission
 - Restaurant dashboard (orders, menu, categories, products, tables/QR, branding,
-  translations CSV, settings)
-- Admin dashboard (overview, restaurants CRUD + status, minimal user creation)
+  settings)
+- Admin dashboard (overview, restaurants CRUD + status, branding/templates,
+  translation CSV, minimal user creation)
 - Legal draft pages (terms, privacy, allergen disclaimer)
 - Unit tests for security-critical pure logic
 

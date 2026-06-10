@@ -1,13 +1,12 @@
-import { NextResponse } from "next/server";
 import {
   buildTranslationCsv,
   type CategoryTranslationsById,
   type TranslationExportProduct,
 } from "@/lib/csv/translation-csv";
-import { requireApiRestaurantOwner } from "@/lib/security/api-guards";
+import type { createServerSupabaseClient } from "@/lib/supabase/server";
 import type { Language } from "@/types/database";
 
-export const dynamic = "force-dynamic";
+type ServerClient = Awaited<ReturnType<typeof createServerSupabaseClient>>;
 
 interface ProductExportRow {
   id: string;
@@ -22,23 +21,23 @@ interface CategoryExportRow {
   menu_category_translations: { language: Language; name: string }[];
 }
 
-/** Downloads the translation CSV for the owner's restaurant. */
-export async function GET() {
-  const auth = await requireApiRestaurantOwner();
-  if (!auth.ok) return auth.response;
-
+/** Builds the multi-language translation CSV for a restaurant. */
+export async function buildRestaurantTranslationCsv(
+  supabase: ServerClient,
+  restaurantId: string,
+): Promise<string> {
   const [{ data: products }, { data: categories }] = await Promise.all([
-    auth.supabase
+    supabase
       .from("menu_products")
       .select(
         "id, category_id, price_cents, allergen_codes, menu_product_translations(language, name, description)",
       )
-      .eq("restaurant_id", auth.restaurantId!)
+      .eq("restaurant_id", restaurantId)
       .order("sort_order", { ascending: true }),
-    auth.supabase
+    supabase
       .from("menu_categories")
       .select("id, menu_category_translations(language, name)")
-      .eq("restaurant_id", auth.restaurantId!),
+      .eq("restaurant_id", restaurantId),
   ]);
 
   const exportProducts: TranslationExportProduct[] = (
@@ -64,14 +63,5 @@ export async function GET() {
     categoryTranslations[c.id] = names;
   }
 
-  const csv = buildTranslationCsv(exportProducts, categoryTranslations);
-  const date = new Date().toISOString().slice(0, 10);
-
-  return new NextResponse(csv, {
-    headers: {
-      "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="menu-translations-${date}.csv"`,
-      "Cache-Control": "no-store",
-    },
-  });
+  return buildTranslationCsv(exportProducts, categoryTranslations);
 }

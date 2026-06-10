@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireApiRestaurantOwner } from "@/lib/security/api-guards";
+import { requireApiPlatformAdmin } from "@/lib/security/api-guards";
 import { requireSameOrigin } from "@/lib/security/origin";
 import { parseJsonBody } from "@/lib/validation/parse-request";
 import { translationsPreviewSchema } from "@/lib/validation/schemas";
@@ -8,20 +8,35 @@ import { previewTranslationImport } from "@/server/translations";
 
 export const dynamic = "force-dynamic";
 
-/** Stage an uploaded translation CSV as a preview batch. Nothing is committed. */
-export async function POST(request: Request) {
+/** Platform admin: stage a translation CSV preview for a specific restaurant. */
+export async function POST(
+  request: Request,
+  context: { params: Promise<{ id: string }> },
+) {
   const originError = requireSameOrigin(request);
   if (originError) return originError;
 
-  const auth = await requireApiRestaurantOwner();
+  const auth = await requireApiPlatformAdmin();
   if (!auth.ok) return auth.response;
+
+  const { id: restaurantId } = await context.params;
+
+  const { data: restaurant } = await auth.supabase
+    .from("restaurants")
+    .select("id")
+    .eq("id", restaurantId)
+    .maybeSingle();
+
+  if (!restaurant) {
+    return NextResponse.json({ error: "Restaurant not found" }, { status: 404 });
+  }
 
   const parsed = await parseJsonBody(request, translationsPreviewSchema);
   if (!parsed.ok) return parsed.response;
 
   const result = await previewTranslationImport(
     auth.supabase,
-    auth.restaurantId!,
+    restaurantId,
     auth.userId,
     parsed.data.csv_content,
     parsed.data.filename,
@@ -32,9 +47,9 @@ export async function POST(request: Request) {
   }
 
   await logAudit({
-    restaurantId: auth.restaurantId,
+    restaurantId,
     actorUserId: auth.userId,
-    action: "translation_import.previewed",
+    action: "translations.import_previewed",
     entityType: "import_batch",
     entityId: result.batchId,
     metadata: { total_rows: result.summary.totalRows, invalid_rows: result.summary.invalidRows },
