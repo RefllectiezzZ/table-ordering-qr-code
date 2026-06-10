@@ -16,6 +16,9 @@ export interface PublicRestaurantBranding {
   welcomeMessage: string | null;
   defaultLanguage: Language;
   enabledLanguages: Language[];
+  /** False while the restaurant has paused ordering (menu stays visible). */
+  acceptsOrders: boolean;
+  pausedMessage: string | null;
 }
 
 export interface PublicTableInfo {
@@ -57,6 +60,8 @@ export type PublicMenuResolution =
 export interface PublicOrderSummary {
   orderId: string;
   shortCode: string;
+  /** Kitchen-friendly per-restaurant number ("Pedido #104"). */
+  orderNumber: number | null;
   status: OrderStatus;
   totalCents: number;
   createdAt: string;

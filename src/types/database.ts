@@ -9,7 +9,16 @@ export type Language = (typeof LANGUAGES)[number];
 export type UserRole = "platform_admin" | "restaurant_owner" | "restaurant_staff";
 export type RestaurantStatus = "active" | "suspended" | "draft";
 export type TableStatus = "active" | "inactive";
-export type OrderStatus = "new" | "preparing" | "ready" | "delivered" | "cancelled";
+export type OrderStatus =
+  | "pending_confirmation"
+  | "new"
+  | "preparing"
+  | "ready"
+  | "delivered"
+  | "cancelled"
+  | "rejected";
+export type TableSessionStatus = "open" | "closed" | "cancelled";
+export type AccessTokenStatus = "active" | "revoked" | "expired";
 export type ImportBatchType = "menu_import" | "translation_import";
 export type ImportBatchStatus = "preview" | "committed" | "failed" | "cancelled";
 export type ImportRowStatus = "valid" | "invalid" | "warning";
@@ -37,6 +46,8 @@ export interface RestaurantRow {
   welcome_message: string | null;
   default_language: Language;
   enabled_languages: Language[];
+  accepts_orders: boolean;
+  paused_message: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -109,11 +120,41 @@ export interface OrderRow {
   id: string;
   restaurant_id: string;
   table_id: string;
+  table_session_id: string | null;
   status: OrderStatus;
+  order_number: number | null;
   customer_note: string | null;
   client_order_token: string;
   created_at: string;
   updated_at: string;
+}
+
+export interface TableSessionRow {
+  id: string;
+  restaurant_id: string;
+  table_id: string;
+  status: TableSessionStatus;
+  opened_at: string;
+  closed_at: string | null;
+  opened_by: string | null;
+  closed_by: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TableSessionAccessTokenRow {
+  id: string;
+  restaurant_id: string;
+  table_id: string;
+  table_session_id: string;
+  token_hash: string;
+  status: AccessTokenStatus;
+  source_order_id: string | null;
+  created_at: string;
+  expires_at: string | null;
+  last_used_at: string | null;
+  revoked_at: string | null;
 }
 
 export interface OrderItemRow {
