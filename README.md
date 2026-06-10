@@ -69,13 +69,28 @@ The full step-by-step checklist lives in
 
 ## Validation
 
+Run before every push:
+
 ```bash
-npm run lint
-npm test
-npm run build
-npm audit
-npm audit --omit=dev
+npm run lint        # ESLint (eslint-config-next + TypeScript rules)
+npm test            # Vitest unit tests
+npm run build       # production build incl. type checking
+npm audit           # all dependencies
+npm audit --omit=dev  # production dependencies only
 ```
+
+Notes on `npm audit`:
+
+- `npm audit --omit=dev` is the more meaningful signal: it focuses on
+  dependencies that ship with the production server, ignoring dev-only
+  tooling.
+- A **known transitive advisory may remain**: `next` pins an older `postcss`
+  internally (GHSA-qx2v-qp2m-jg93, moderate). It is only used at build time on
+  this project's own CSS, the fix is not yet in a stable Next release, and the
+  only automated "fix" is a breaking downgrade. Status and reasoning:
+  `docs/known-limitations.md` (section "Dependency / audit status").
+- **Never run `npm audit fix --force` blindly** — here it would downgrade
+  Next.js to a 6-major-versions-older release and break the app.
 
 ## Documentation
 

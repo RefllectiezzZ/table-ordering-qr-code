@@ -1,6 +1,7 @@
 # Launch Gates
 
 Checklist that must be fully green before charging customers / public launch.
+Mirrors section 2 of `docs/known-limitations.md` — keep both in sync.
 
 ## Infrastructure
 
@@ -22,6 +23,10 @@ Checklist that must be fully green before charging customers / public launch.
       Vercel/Cloudflare edge) replacing the in-memory baseline before wider
       public scale
 - [ ] MFA enabled/offered for admin and restaurant accounts (future hardening)
+- [ ] CAPTCHA / abuse heuristics on the public order endpoint, if pilot traffic
+      shows abuse the rate limiter doesn't catch
+- [ ] Storage bucket policies reviewed when image uploads are added
+      (not needed while images are URL-only)
 - [ ] Logs checked: no secrets, no tokens, no customer PII
 - [ ] First platform admin provisioned through a controlled, documented process
 
@@ -42,3 +47,5 @@ Checklist that must be fully green before charging customers / public launch.
       updates new → preparing → ready → delivered
 - [ ] CSV translation smoke: export → edit → preview → commit → menu updated
 - [ ] Tenant isolation smoke: restaurant A cannot access restaurant B data
+- [ ] Final full smoke run with realistic restaurant-like data (menu size,
+      table count, order volume) against the production project
