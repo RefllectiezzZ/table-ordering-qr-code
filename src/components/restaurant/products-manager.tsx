@@ -376,7 +376,7 @@ function ProductForm({
 
       <fieldset>
         <legend className="mb-2 text-xs font-medium text-slate-600">
-          Alérgenos (códigos UE estáveis — os nomes são traduzidos automaticamente no menu)
+          Alergénios (códigos UE estáveis; os nomes são traduzidos automaticamente no menu)
         </legend>
         <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 lg:grid-cols-4">
           {ALLERGEN_CODES.map((code) => (
@@ -497,7 +497,7 @@ export function ProductsManager({
       {products.length === 0 && !showCreate ? (
         <EmptyState
           title="Ainda não há produtos"
-          description="Crie o primeiro produto em português, com preço, alérgenos e fotografia. As traduções são opcionais."
+          description="Crie o primeiro produto em português, com preço, alergénios e fotografia. As traduções são opcionais."
           action={<Button onClick={() => setShowCreate(true)}>Criar produto</Button>}
         />
       ) : null}
@@ -556,7 +556,7 @@ export function ProductsManager({
               </CardContent>
             ) : product.allergenCodes.length > 0 ? (
               <CardContent className="text-xs text-slate-500">
-                Alérgenos: {product.allergenCodes.map((c) => getAllergenName(c, "pt")).join(", ")}
+                Alergénios: {product.allergenCodes.map((c) => getAllergenName(c, "pt")).join(", ")}
               </CardContent>
             ) : null}
           </Card>

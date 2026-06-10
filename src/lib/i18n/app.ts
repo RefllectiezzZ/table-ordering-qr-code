@@ -161,7 +161,7 @@ export const LEGAL_STRINGS: Record<AppLanguage, LegalStrings> = {
   pt: {
     terms: "Termos",
     privacy: "Privacidade",
-    allergens: "Alérgenos",
+    allergens: "Alergénios",
     draftNotice:
       "Documento em rascunho, sem valor de aconselhamento jurídico. Tem de ser revisto por um profissional qualificado antes do lançamento comercial. Última atualização: junho de 2026.",
     backToSite: "Voltar ao site",

@@ -67,7 +67,7 @@ export const PUBLIC_MENU_STRINGS: Record<Language, PublicMenuStrings> = {
     cart: "Carrinho",
     addToCart: "Adicionar",
     unavailable: "Indisponível",
-    allergens: "Alérgenos",
+    allergens: "Alergénios",
     quantity: "Quantidade",
     itemNotePlaceholder: "Nota para este item (opcional)",
     orderNotePlaceholder: "Nota para o restaurante (opcional)",
