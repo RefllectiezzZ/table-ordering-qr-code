@@ -2,10 +2,14 @@
 
 Multi-tenant QR table ordering SaaS for small restaurants.
 
-Customers scan a QR code on their table, see the restaurant's branded
-multilingual menu (PT/EN/ES/FR), and submit an order straight to the kitchen —
-no account, no app, no online payments. Restaurants manage menus, tables/QR
-codes, branding and live orders in a private dashboard. A platform admin
+Customers scan a printed QR code on their table, see the restaurant's branded
+multilingual menu (PT/EN/ES/FR) and submit an order — no account, no app, no
+online payments. Because QR codes are fixed, the **first order from an unknown
+browser waits for staff confirmation** before reaching the kitchen; confirming
+it opens a **table session** and authorizes that device for direct ordering
+until staff close the session. Restaurants manage menus (Portuguese base
+language + optional translations), product photos, tables/QR codes, branding,
+order availability and live orders in a private dashboard. A platform admin
 manages the restaurants themselves.
 
 ## Tech stack
@@ -22,6 +26,11 @@ manages the restaurants themselves.
 2. Apply the migrations in `supabase/migrations/` **in filename order** — either:
    - `supabase link && supabase db push` (Supabase CLI), or
    - paste each file into the Dashboard SQL editor and run it.
+
+   This includes `..._product_images_storage.sql`, which creates the
+   **`product-images` storage bucket** (public read, 5 MB, JPEG/PNG/WebP).
+   Uploads only ever go through the server-side route handler; do not add
+   anon/authenticated write policies to the bucket.
 3. Optional but recommended: run `supabase/seed.sql` for the demo restaurant
    ("Demo Brunch", with two demo QR tokens used by the landing page).
 
@@ -38,7 +47,7 @@ Fill in (Dashboard → Settings → API):
 | `NEXT_PUBLIC_SUPABASE_URL` | project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | anon/publishable key (browser-safe) |
 | `SUPABASE_SERVICE_ROLE_KEY` | service role/secret key — **server-only, never expose** |
-| `NEXT_PUBLIC_APP_URL` | `http://localhost:3000` locally |
+| `NEXT_PUBLIC_APP_URL` | `http://localhost:3000` locally (plain http). Also used for the post-signout redirect and QR URLs; set it to the real https URL in production. |
 
 ### 3. First platform admin
 

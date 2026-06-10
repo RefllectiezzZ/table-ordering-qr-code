@@ -1,40 +1,43 @@
-# Allergen & Translation Disclaimer — DRAFT
+# Allergen and Translation Notice (draft)
 
-> Draft document, not legal advice. Must be reviewed by a qualified
-> professional before commercial launch. The live version is rendered at
-> `/allergen-disclaimer`; keep both in sync.
+> Working draft, not legal advice. It must be reviewed by a qualified
+> professional before commercial launch. The live versions are rendered at
+> `/allergen-disclaimer` in Portuguese and English; keep this file and the
+> page in sync.
 
 ## Allergens
 
-The platform can display the 14 allergens regulated in the EU (Regulation (EU)
-No 1169/2011, Annex II): gluten, crustaceans, eggs, fish, peanuts, soybeans,
-milk, tree nuts, celery, mustard, sesame, sulphur dioxide/sulphites, lupin,
-molluscs.
+Menus on this platform can flag the 14 allergens that require declaration in
+the European Union (Regulation (EU) No 1169/2011, Annex II): gluten,
+crustaceans, eggs, fish, peanuts, soybeans, milk, tree nuts, celery, mustard,
+sesame, sulphur dioxide and sulphites, lupin and molluscs.
 
-Key points that must always remain true in product and copy:
+Points that must always remain true in both product and copy:
 
-1. Allergen information is **provided and validated by each restaurant** — the
-   platform supplies the vocabulary (stable codes + translations), not the facts.
-2. Cross-contamination can never be fully excluded in kitchens.
-3. **Customers with allergies or intolerances must confirm with restaurant
-   staff before ordering and before consuming.** This warning is shown on every
-   public menu, in the menu's language.
+1. Allergen information is entered and validated by each restaurant. The
+   platform supplies the vocabulary (stable codes plus translations), not the
+   facts about any dish.
+2. Kitchens handle many ingredients at once; cross-contamination can never be
+   fully ruled out.
+3. Anyone with a food allergy or intolerance must check directly with the
+   restaurant staff before ordering and before consuming. This warning is
+   shown on every public menu, in the menu's language.
 
-Allergen **codes** are stable identifiers (`gluten`, `milk`, …) stored on
-products; they are never free-translated, and the translation CSV import
-ignores the allergen column entirely.
+Allergen codes are stable identifiers (`gluten`, `milk`, and so on) stored on
+products. They are never free-translated; display names come from a fixed
+PT/EN/ES/FR table, and the translation CSV import ignores the allergen column
+entirely.
 
 ## Translations
 
-- Menu translations (PT/EN/ES/FR) may be produced manually or with AI
-  assistance through the CSV export/import workflow.
-- The restaurant must review and approve translations before publishing
-  (the import flow forces an explicit preview + commit).
-- If a translation is unclear or contradictory, the restaurant's
-  default-language version and staff confirmation prevail.
+Menu translations (Portuguese, English, Spanish and French) may be prepared
+manually or with the help of external tools, through the CSV export and
+import flow with preview and explicit confirmation. The restaurant is
+responsible for reviewing and approving translations before publishing them.
+If a translation seems unclear or contradictory, the restaurant's
+base-language version and the staff's confirmation prevail.
 
-## Platform position
+## Status
 
-The platform is a software provider. Menu accuracy, allergen accuracy and
-translation accuracy are the restaurant's responsibility (mirrored in the
-Terms, section 2).
+Draft for the MVP phase. It must be reviewed by a qualified professional
+before commercial launch.

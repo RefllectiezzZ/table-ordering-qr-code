@@ -1,76 +1,79 @@
-# Terms of Service — DRAFT
+# Terms of Service (draft)
 
-> Draft document, not legal advice. Must be reviewed by a qualified
-> professional before commercial launch. The live version is rendered at
-> `/terms`; keep both in sync.
+> Working draft, not legal advice. It must be reviewed by a qualified
+> professional before commercial launch. The live versions are rendered at
+> `/terms` in Portuguese and English; keep this file and the page in sync.
 
 ## 1. The service
 
-TableOrder ("the Platform") provides software that lets restaurants publish a
-digital menu accessible via QR codes and receive orders placed by customers at
-their tables. The Platform is a technology provider only: it displays menus and
-transmits orders between customers and restaurants. The Platform is not a party
-to the sale of food or drinks.
+TableOrder is software that lets restaurants publish a digital menu reachable
+through a QR code and receive orders placed by customers at their tables. We
+are a technology provider: we display menus and transmit orders between
+customers and restaurants. The consumer relationship is always between the
+customer and the restaurant; we are not a party to the sale of food or drinks.
 
 ## 2. Restaurant responsibility
 
-Each restaurant is solely responsible for:
+Each restaurant using the service is solely responsible for:
 
-- the accuracy of its menu (names, descriptions);
-- prices and price updates;
-- product availability;
-- allergen and ingredient information;
-- the accuracy of the translations it publishes;
+- keeping the menu accurate, including product names and descriptions;
+- setting and updating prices;
+- reflecting real product availability;
+- validating ingredient and allergen information;
+- reviewing the translations it decides to publish;
 - preparing and delivering the orders it accepts;
-- compliance with food-safety and consumer-protection law applicable to it.
+- complying with the food-safety and consumer-protection rules that apply to it.
 
 ## 3. No online payments
 
-The MVP does not process online payments. All payments are settled directly
-between customer and restaurant, at the restaurant.
+This version does not process online payments. Payments are settled directly
+between the customer and the restaurant, at the restaurant, using whatever
+means the restaurant accepts.
 
 ## 4. Customer use
 
-Customers do not need an account. Submitting an order through a table QR code
-asks the restaurant to prepare the selected items for that table. Orders are
-requests; the restaurant may decline or cancel (e.g. out of stock).
+Customers do not need an account. By sending an order through a table QR code,
+the customer asks the restaurant to prepare the selected items for that table.
+An order is a request: the restaurant may confirm, decline or cancel it, for
+instance when a product runs out or when staff cannot verify who is sitting at
+the table. The first order from a device may wait for staff confirmation
+before reaching the kitchen.
 
 ## 5. Allergens
 
 Allergen information shown on menus is provided and validated by each
-restaurant. Customers with food allergies or intolerances must always confirm
-directly with restaurant staff before consuming. See the allergen disclaimer.
+restaurant, not by us. Anyone with food allergies or intolerances should
+always check directly with the restaurant staff before consuming. See the
+allergen notice (`/allergen-disclaimer`).
 
 ## 6. Translations
 
-Menu translations may be produced manually or with AI assistance via a CSV
-workflow. Restaurants must review and approve translations before publishing.
-The Platform is not liable for translation errors in restaurant-published
-content.
+Menu translations may be prepared manually or with the help of external tools,
+through a CSV export and import flow. The restaurant is responsible for
+reviewing and approving translations before publishing them. We are not liable
+for translation errors in content published by the restaurant.
 
 ## 7. Acceptable use
 
-Restaurant users must keep credentials confidential and may only access data of
-their own restaurant. Attempts to access other tenants' data, abuse of public
-endpoints, or disruption of the service are prohibited and may lead to
-suspension.
+Restaurant accounts must keep their credentials confidential and only access
+data belonging to their own restaurant. Attempting to reach other
+restaurants' data, abusing public endpoints, submitting fake orders or
+disrupting the service is prohibited and may lead to suspension.
 
 ## 8. Suspension and termination
 
-The Platform operator may suspend a restaurant for breach of these terms.
-While suspended, the restaurant's public menu and ordering are unavailable.
+We may suspend a restaurant that breaches these terms. While suspended, its
+public menu and order intake are unavailable.
 
 ## 9. Liability
 
-To the maximum extent permitted by law, the Platform is provided "as is" during
-the MVP phase, without warranties of uninterrupted availability.
+During this MVP phase the service is provided as is, with no promise of
+uninterrupted availability. To the maximum extent allowed by law, we are not a
+party to the sale between restaurant and customer and accept no liability for
+it.
 
 ## 10. Changes
 
-These draft terms will be finalised, versioned and dated before commercial
-launch. Material changes will be communicated to restaurants.
-
----
-
-Open items before launch: governing law/jurisdiction, operator legal identity,
-contact details, consumer-dispute language, versioning policy.
+These terms are a working draft. They will be finalised, versioned and dated
+before commercial launch, and relevant changes will be communicated to
+restaurants.

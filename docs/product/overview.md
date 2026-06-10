@@ -10,8 +10,16 @@ Multi-tenant QR table ordering SaaS for small restaurants.
 - Each **table** has a unique, non-guessable QR token.
 - **Customers** scan a table's QR code, see only that restaurant's menu, add products
   to a cart and submit an order for that table — no account, no app.
+- **First-order confirmation**: QR codes are printed and fixed, so the first
+  order from an unknown browser starts as `pending_confirmation`. Staff confirm
+  it (opening a **table session**), after which that device orders directly
+  while the session stays open. Closing the session revokes the device
+  authorizations; old orders stay in history.
 - **Kitchen/staff** see incoming orders on a live board and move them through
-  statuses: `new → preparing → ready → delivered` (or `cancelled`).
+  statuses: `new → preparing → ready → delivered` (or `cancelled`); pending
+  orders live in a separate reception queue and can be confirmed or `rejected`.
+- Restaurants can **pause ordering** (menu stays visible, submission blocked)
+  and upload **product photos** shown on the public menu.
 
 ## Roles
 
@@ -29,13 +37,25 @@ Multi-tenant QR table ordering SaaS for small restaurants.
 2. **Menu setup**: owner creates categories and products (price in EUR stored as
    cents, EU allergen codes, per-language names/descriptions).
 3. **Tables**: owner creates tables; each gets a server-generated random token and a
-   QR code pointing to `/t/[token]`.
+   QR code pointing to `/t/[token]`. The tables page doubles as an operational
+   floor view (free/occupied, open session, pending counts, open/close session).
 4. **Ordering**: customer scans QR → `/t/[token]` resolves the token to exactly one
-   table + restaurant → cart → `POST /api/public/orders` (idempotent) → confirmation.
-5. **Kitchen**: owner/staff watch `/restaurant/orders` (polling board) and update
-   statuses through validated transitions.
-6. **Translations**: owner exports CSV → translates offline → imports with preview →
-   commits explicitly. See `docs/imports/translation-csv.md`.
+   table + restaurant → cart → `POST /api/public/orders` (idempotent). Without a
+   valid browser authorization the order starts as `pending_confirmation`; the
+   customer page polls its status and learns the authorization once staff
+   confirm.
+5. **Reception/kitchen**: owner/staff watch `/restaurant/orders` (polling board
+   with URL-persisted date/status filters). Pending orders are confirmed or
+   rejected in the reception section; confirmed orders flow
+   `new → preparing → ready → delivered` (or `cancelled`), oldest first, with
+   per-restaurant order numbers ("Pedido #104").
+6. **Session close**: when customers leave, staff close the table session from
+   the floor view; device authorizations are revoked and the next group starts
+   with a fresh confirmation.
+7. **Translations**: products are created in Portuguese (base language,
+   required); EN/ES/FR are optional. Owner exports one multi-language CSV →
+   translates offline → imports with preview → commits explicitly. See
+   `docs/imports/translation-csv.md`.
 
 ## MVP scope
 
