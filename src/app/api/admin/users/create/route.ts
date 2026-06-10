@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireApiPlatformAdmin } from "@/lib/security/api-guards";
+import { requireSameOrigin } from "@/lib/security/origin";
 import { createServiceRoleSupabaseClient } from "@/lib/supabase/service-role";
 import { parseJsonBody } from "@/lib/validation/parse-request";
 import { adminUserCreateSchema } from "@/lib/validation/schemas";
@@ -18,6 +19,9 @@ export const dynamic = "force-dynamic";
  * never stored by the app.
  */
 export async function POST(request: Request) {
+  const originError = requireSameOrigin(request);
+  if (originError) return originError;
+
   const auth = await requireApiPlatformAdmin();
   if (!auth.ok) return auth.response;
 

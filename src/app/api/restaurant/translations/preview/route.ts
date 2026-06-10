@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireApiRestaurantOwner } from "@/lib/security/api-guards";
+import { requireSameOrigin } from "@/lib/security/origin";
 import { parseJsonBody } from "@/lib/validation/parse-request";
 import { translationsPreviewSchema } from "@/lib/validation/schemas";
 import { logAudit } from "@/server/audit";
@@ -9,6 +10,9 @@ export const dynamic = "force-dynamic";
 
 /** Stage an uploaded translation CSV as a preview batch. Nothing is committed. */
 export async function POST(request: Request) {
+  const originError = requireSameOrigin(request);
+  if (originError) return originError;
+
   const auth = await requireApiRestaurantOwner();
   if (!auth.ok) return auth.response;
 

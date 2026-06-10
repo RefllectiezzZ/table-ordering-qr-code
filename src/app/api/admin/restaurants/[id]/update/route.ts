@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireApiPlatformAdmin } from "@/lib/security/api-guards";
+import { requireSameOrigin } from "@/lib/security/origin";
 import { parseJsonBody } from "@/lib/validation/parse-request";
 import { adminRestaurantUpdateSchema } from "@/lib/validation/schemas";
 import { logAudit } from "@/server/audit";
@@ -7,6 +8,9 @@ import { logAudit } from "@/server/audit";
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const originError = requireSameOrigin(request);
+  if (originError) return originError;
+
   const auth = await requireApiPlatformAdmin();
   if (!auth.ok) return auth.response;
 

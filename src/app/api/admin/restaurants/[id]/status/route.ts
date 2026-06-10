@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireApiPlatformAdmin } from "@/lib/security/api-guards";
+import { requireSameOrigin } from "@/lib/security/origin";
 import { parseJsonBody } from "@/lib/validation/parse-request";
 import { adminRestaurantStatusSchema } from "@/lib/validation/schemas";
 import { logAudit } from "@/server/audit";
@@ -11,6 +12,9 @@ export const dynamic = "force-dynamic";
  * stop serving their public menu and stop accepting public orders.
  */
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const originError = requireSameOrigin(request);
+  if (originError) return originError;
+
   const auth = await requireApiPlatformAdmin();
   if (!auth.ok) return auth.response;
 
