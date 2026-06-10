@@ -23,13 +23,24 @@ export default async function PublicMenuPage({
   const { token } = await params;
   const resolution = await resolvePublicMenu(token);
 
-  if (resolution.state === "invalid_token" || resolution.state === "table_inactive") {
+  if (resolution.state === "invalid_token") {
     return (
       <PublicErrorState
         icon="🔍"
         titlePt="QR code inválido"
         bodyPt="Este QR code não é válido ou já não está ativo. Peça ajuda à equipa do restaurante."
         bodyEn="This QR code is not valid or is no longer active. Please ask the restaurant staff for help."
+      />
+    );
+  }
+
+  if (resolution.state === "table_inactive") {
+    return (
+      <PublicErrorState
+        icon="🪑"
+        titlePt="Mesa indisponível"
+        bodyPt="Esta mesa não está ativa de momento. Peça ajuda à equipa do restaurante."
+        bodyEn="This table is not active right now. Please ask the restaurant staff for help."
       />
     );
   }

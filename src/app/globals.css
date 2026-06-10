@@ -51,3 +51,23 @@ body {
 .scrollbar-none::-webkit-scrollbar {
   display: none;
 }
+
+/* Gentle entrance for public menu cards/panels. */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.fade-in-up {
+  animation: fade-in-up 0.35s ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .fade-in-up {
+    animation: none;
+  }
+}
