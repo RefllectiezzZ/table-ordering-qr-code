@@ -4,7 +4,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
-const OWNER_LINKS = [
+interface NavLink {
+  href: string;
+  label: string;
+  exact?: boolean;
+}
+
+const OWNER_LINKS: NavLink[] = [
+  { href: "/restaurant", label: "Início", exact: true },
   { href: "/restaurant/orders", label: "Pedidos" },
   { href: "/restaurant/tables", label: "Mesas & QR" },
   { href: "/restaurant/menu", label: "Menu" },
@@ -15,7 +22,8 @@ const OWNER_LINKS = [
   { href: "/restaurant/settings", label: "Definições" },
 ];
 
-const STAFF_LINKS = [
+const STAFF_LINKS: NavLink[] = [
+  { href: "/restaurant", label: "Início", exact: true },
   { href: "/restaurant/orders", label: "Pedidos" },
   { href: "/restaurant/tables", label: "Mesas" },
   { href: "/restaurant/menu", label: "Menu" },
@@ -28,14 +36,20 @@ export function RestaurantNav({ isOwner }: { isOwner: boolean }) {
   return (
     <nav className="scrollbar-none flex gap-1 overflow-x-auto px-3 pb-3 lg:flex-col lg:px-3 lg:py-2">
       {links.map((link) => {
-        const active = pathname === link.href || pathname.startsWith(`${link.href}/`);
+        const active = link.exact
+          ? pathname === link.href
+          : pathname === link.href || pathname.startsWith(`${link.href}/`);
         return (
           <Link
             key={link.href}
             href={link.href}
+            aria-current={active ? "page" : undefined}
             className={cn(
-              "shrink-0 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-              active ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100",
+              "shrink-0 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150",
+              "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600",
+              active
+                ? "bg-slate-900 text-white shadow-sm"
+                : "text-slate-600 hover:bg-amber-50 hover:text-slate-900",
             )}
           >
             {link.label}
