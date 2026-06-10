@@ -1,113 +1,266 @@
 import Link from "next/link";
+import { LanguageToggle } from "@/components/i18n/language-toggle";
 import { Button } from "@/components/ui/button";
+import { LANDING_STRINGS } from "@/lib/i18n/landing";
+import { getAppLanguage } from "@/lib/i18n/server";
 
-const FEATURES = [
-  {
-    title: "Branded QR menus",
-    description:
-      "Each restaurant gets its own colors, logo and welcome message on a mobile-first menu in PT, EN, ES and FR.",
-  },
-  {
-    title: "Order from the table",
-    description:
-      "Customers scan the QR code on their table, browse the menu and send the order straight to the kitchen. No app, no account.",
-  },
-  {
-    title: "Live kitchen board",
-    description:
-      "Staff see new orders instantly, grouped by status: new, preparing, ready, delivered.",
-  },
-  {
-    title: "Translations via CSV",
-    description:
-      "Export the menu to CSV, translate it offline (or with your favourite AI), preview the changes and import safely.",
-  },
-  {
-    title: "Allergen aware",
-    description:
-      "Products carry the 14 EU allergen codes, displayed in the customer's language with a clear staff-confirmation disclaimer.",
-  },
-  {
-    title: "Multi-tenant by design",
-    description:
-      "Every restaurant's data is isolated with Postgres Row Level Security. One platform, many restaurants, zero crossover.",
-  },
-];
+// Reads the language cookie, so it renders per-request.
+export const dynamic = "force-dynamic";
 
-export default function LandingPage() {
+const DEMO_MENU_PATH = "/t/demo-mesa-1-k3v9q2x8w7z4";
+
+const STEP_ICONS = ["📱", "🛒", "👨‍🍳"];
+const FEATURE_ICONS = ["🎨", "✅", "📋", "🌍", "⚠️", "⏸️"];
+const TRUST_ICONS = ["🔒", "🧮", "🙈"];
+
+export default async function LandingPage() {
+  const lang = await getAppLanguage();
+  const t = LANDING_STRINGS[lang];
+
   return (
     <main className="flex-1 bg-white">
-      <header className="border-b border-slate-100">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <span className="text-lg font-bold tracking-tight text-slate-900">
+      {/* Header */}
+      <header className="sticky top-0 z-20 border-b border-slate-100 bg-white/90 backdrop-blur">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
+          <span className="text-lg font-extrabold tracking-tight text-slate-900">
             Table<span className="text-amber-600">Order</span>
           </span>
-          <nav className="flex items-center gap-3">
+          <nav className="flex items-center gap-2 sm:gap-3">
             <Link
-              href="/t/demo-mesa-1-k3v9q2x8w7z4"
+              href={DEMO_MENU_PATH}
               className="hidden text-sm font-medium text-slate-600 hover:text-slate-900 sm:block"
             >
-              Demo menu
+              {t.navDemo}
             </Link>
+            <LanguageToggle current={lang} />
             <Link href="/login">
-              <Button size="sm">Log in</Button>
+              <Button size="sm">{t.navLogin}</Button>
             </Link>
           </nav>
         </div>
       </header>
 
-      <section className="mx-auto max-w-6xl px-6 py-20 text-center">
-        <p className="mb-4 inline-block rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">
-          QR table ordering for small restaurants
-        </p>
-        <h1 className="mx-auto max-w-3xl text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl">
-          Your menu on every table.
-          <br />
-          Orders straight to the kitchen.
-        </h1>
-        <p className="mx-auto mt-6 max-w-2xl text-lg text-slate-600">
-          Customers scan a QR code, see your branded multilingual menu and order without waiting.
-          You manage everything from a simple dashboard — no hardware, no app installs, no online
-          payments to set up.
-        </p>
-        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-          <Link href="/login">
-            <Button size="lg">Restaurant login</Button>
-          </Link>
-          <Link href="/t/demo-mesa-1-k3v9q2x8w7z4">
-            <Button size="lg" variant="outline">
-              Try the demo QR menu
-            </Button>
-          </Link>
+      {/* Hero */}
+      <section className="relative overflow-hidden">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_50%_at_50%_0%,rgba(245,158,11,0.12),transparent)]"
+        />
+        <div className="mx-auto max-w-6xl px-4 py-16 text-center sm:px-6 sm:py-24">
+          <p className="mb-5 inline-block rounded-full border border-amber-200 bg-amber-50 px-4 py-1.5 text-xs font-semibold text-amber-800">
+            {t.heroBadge}
+          </p>
+          <h1 className="mx-auto max-w-3xl text-4xl font-extrabold tracking-tight text-slate-900 sm:text-6xl">
+            {t.heroTitle1}
+            <br />
+            <span className="bg-gradient-to-r from-amber-600 to-orange-500 bg-clip-text text-transparent">
+              {t.heroTitle2}
+            </span>
+          </h1>
+          <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-slate-600 sm:text-lg">
+            {t.heroSubtitle}
+          </p>
+          <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
+            <Link href="/login">
+              <Button size="lg" className="shadow-lg shadow-slate-900/10">
+                {t.ctaLogin}
+              </Button>
+            </Link>
+            <Link href={DEMO_MENU_PATH}>
+              <Button size="lg" variant="outline">
+                {t.ctaDemo}
+              </Button>
+            </Link>
+          </div>
+          <p className="mt-4 text-xs text-slate-400">{t.demoNote}</p>
         </div>
-        <p className="mt-3 text-xs text-slate-400">
-          The demo menu requires the local demo seed (see README).
-        </p>
       </section>
 
+      {/* How it works */}
       <section className="border-t border-slate-100 bg-slate-50">
-        <div className="mx-auto grid max-w-6xl gap-6 px-6 py-16 sm:grid-cols-2 lg:grid-cols-3">
-          {FEATURES.map((feature) => (
-            <div key={feature.title} className="rounded-xl border border-slate-200 bg-white p-6">
-              <h2 className="text-sm font-semibold text-slate-900">{feature.title}</h2>
-              <p className="mt-2 text-sm leading-relaxed text-slate-600">{feature.description}</p>
+        <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
+          <h2 className="text-center text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">
+            {t.howTitle}
+          </h2>
+          <p className="mt-2 text-center text-sm text-slate-500">{t.howSubtitle}</p>
+          <div className="mt-10 grid gap-5 sm:grid-cols-3">
+            {t.howSteps.map((step, index) => (
+              <div
+                key={step.title}
+                className="relative rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+              >
+                <div className="mb-4 flex items-center gap-3">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-100 text-lg">
+                    {STEP_ICONS[index]}
+                  </span>
+                  <span className="text-xs font-bold text-amber-600">
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+                </div>
+                <h3 className="text-sm font-bold text-slate-900">{step.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-slate-600">{step.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Benefits + visual mockup */}
+      <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
+        <div className="grid items-center gap-10 lg:grid-cols-2">
+          <div>
+            <h2 className="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">
+              {t.benefitsTitle}
+            </h2>
+            <div className="mt-7 space-y-5">
+              {t.benefits.map((benefit) => (
+                <div key={benefit.title} className="flex gap-4">
+                  <span
+                    aria-hidden
+                    className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-sm font-bold text-emerald-700"
+                  >
+                    ✓
+                  </span>
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900">{benefit.title}</h3>
+                    <p className="mt-1 text-sm leading-relaxed text-slate-600">
+                      {benefit.description}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* CSS phone mockup of the public menu */}
+          <div className="flex flex-col items-center">
+            <div className="w-64 rounded-[2rem] border-8 border-slate-900 bg-white shadow-2xl">
+              <div className="rounded-t-[1.5rem] bg-gradient-to-br from-amber-600 to-orange-500 px-4 pb-6 pt-5">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-base font-extrabold text-amber-600">
+                    D
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-white">Demo Brunch</p>
+                    <p className="text-[10px] font-semibold text-amber-100">Mesa 1</p>
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-2.5 px-3 py-4">
+                {[
+                  { name: "Croissant de Nutella", price: "3,50 €" },
+                  { name: "Cappuccino", price: "2,20 €" },
+                  { name: "Panqueca de frutos vermelhos", price: "6,50 €" },
+                ].map((item) => (
+                  <div
+                    key={item.name}
+                    className="flex items-center justify-between rounded-xl border border-slate-100 p-2.5 shadow-sm"
+                  >
+                    <div className="min-w-0 pr-2">
+                      <p className="truncate text-[11px] font-bold text-slate-900">{item.name}</p>
+                      <p className="text-[10px] font-semibold text-amber-600">{item.price}</p>
+                    </div>
+                    <span className="rounded-lg bg-amber-600 px-2 py-1 text-[9px] font-bold text-white">
+                      +
+                    </span>
+                  </div>
+                ))}
+                <div className="flex items-center justify-between rounded-xl bg-slate-900 px-3 py-2.5">
+                  <span className="text-[10px] font-semibold text-slate-300">2 · Mesa 1</span>
+                  <span className="text-[11px] font-bold text-white">5,70 €</span>
+                </div>
+              </div>
+            </div>
+            <p className="mt-5 text-center text-xs text-slate-400">{t.mockupTagline}</p>
+          </div>
+        </div>
+      </section>
+
+      {/* Features */}
+      <section className="border-t border-slate-100 bg-slate-50">
+        <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
+          <h2 className="text-center text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">
+            {t.featuresTitle}
+          </h2>
+          <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {t.features.map((feature, index) => (
+              <div
+                key={feature.title}
+                className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md"
+              >
+                <span aria-hidden className="mb-3 block text-2xl">
+                  {FEATURE_ICONS[index]}
+                </span>
+                <h3 className="text-sm font-bold text-slate-900">{feature.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-slate-600">
+                  {feature.description}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Trust / security */}
+      <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
+        <h2 className="text-center text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">
+          {t.trustTitle}
+        </h2>
+        <div className="mt-10 grid gap-5 sm:grid-cols-3">
+          {t.trustItems.map((item, index) => (
+            <div
+              key={item.title}
+              className="rounded-2xl border border-slate-200 p-6 text-center"
+            >
+              <span aria-hidden className="mb-3 block text-2xl">
+                {TRUST_ICONS[index]}
+              </span>
+              <h3 className="text-sm font-bold text-slate-900">{item.title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-slate-600">{item.description}</p>
             </div>
           ))}
         </div>
       </section>
 
+      {/* Final CTA */}
+      <section className="border-t border-slate-100 bg-slate-900">
+        <div className="mx-auto max-w-6xl px-4 py-16 text-center sm:px-6">
+          <h2 className="text-2xl font-extrabold tracking-tight text-white sm:text-3xl">
+            {t.finalCtaTitle}
+          </h2>
+          <p className="mt-3 text-sm text-slate-300">{t.finalCtaSubtitle}</p>
+          <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
+            <Link href="/login">
+              <Button size="lg" className="bg-amber-500 text-slate-900 hover:bg-amber-400">
+                {t.ctaLogin}
+              </Button>
+            </Link>
+            <Link href={DEMO_MENU_PATH}>
+              <Button
+                size="lg"
+                variant="outline"
+                className="border-slate-600 bg-transparent text-white hover:bg-slate-800"
+              >
+                {t.ctaDemo}
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
       <footer className="border-t border-slate-100">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-6 py-8 text-xs text-slate-500 sm:flex-row">
-          <span>TableOrder — MVP preview. No online payments.</span>
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-4 py-8 text-xs text-slate-500 sm:flex-row sm:px-6">
+          <span>{t.footerTagline}</span>
           <nav className="flex gap-4">
             <Link href="/terms" className="hover:text-slate-900">
-              Terms
+              {t.footerTerms}
             </Link>
             <Link href="/privacy" className="hover:text-slate-900">
-              Privacy
+              {t.footerPrivacy}
             </Link>
             <Link href="/allergen-disclaimer" className="hover:text-slate-900">
-              Allergen disclaimer
+              {t.footerAllergens}
             </Link>
           </nav>
         </div>
