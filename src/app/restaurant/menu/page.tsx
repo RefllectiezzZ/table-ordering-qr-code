@@ -58,20 +58,23 @@ export default async function MenuOverviewPage() {
     <div className="p-4 sm:p-6">
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-slate-900">Menu overview</h1>
+          <h1 className="text-xl font-bold text-slate-900">Menu</h1>
           <p className="text-sm text-slate-500">
-            {categories.length} categories · {products.length} products
+            {categories.length} categorias · {products.length} produtos.{" "}
+            <span className="text-slate-400">
+              Ativo = visível no menu público · Disponível = pode ser pedido agora.
+            </span>
           </p>
         </div>
         {isOwner ? (
           <div className="flex gap-2">
             <Link href="/restaurant/categories">
               <Button variant="outline" size="sm">
-                Manage categories
+                Gerir categorias
               </Button>
             </Link>
             <Link href="/restaurant/products">
-              <Button size="sm">Manage products</Button>
+              <Button size="sm">Gerir produtos</Button>
             </Link>
           </div>
         ) : null}
@@ -79,16 +82,16 @@ export default async function MenuOverviewPage() {
 
       {categories.length === 0 && products.length === 0 ? (
         <EmptyState
-          title="The menu is empty"
+          title="O menu está vazio"
           description={
             isOwner
-              ? "Start by creating categories, then add products to them."
-              : "The owner has not added menu items yet."
+              ? "Comece por criar categorias e adicione-lhes produtos."
+              : "O responsável ainda não adicionou itens ao menu."
           }
           action={
             isOwner ? (
               <Link href="/restaurant/categories">
-                <Button>Create first category</Button>
+                <Button>Criar primeira categoria</Button>
               </Link>
             ) : undefined
           }
@@ -102,15 +105,15 @@ export default async function MenuOverviewPage() {
                 <CardHeader className="flex flex-row items-center gap-3">
                   <CardTitle>{nameOf(category.menu_category_translations)}</CardTitle>
                   <Badge tone={category.is_active ? "green" : "neutral"}>
-                    {category.is_active ? "active" : "inactive"}
+                    {category.is_active ? "ativa" : "inativa"}
                   </Badge>
                   <span className="text-xs text-slate-400">
-                    {categoryProducts.length} product{categoryProducts.length === 1 ? "" : "s"}
+                    {categoryProducts.length} produto{categoryProducts.length === 1 ? "" : "s"}
                   </span>
                 </CardHeader>
                 <CardContent>
                   {categoryProducts.length === 0 ? (
-                    <p className="text-sm text-slate-400">No products in this category.</p>
+                    <p className="text-sm text-slate-400">Sem produtos nesta categoria.</p>
                   ) : (
                     <ul className="divide-y divide-slate-100">
                       {categoryProducts.map((product) => (
@@ -120,9 +123,9 @@ export default async function MenuOverviewPage() {
                         >
                           <span className="flex items-center gap-2">
                             {nameOf(product.menu_product_translations)}
-                            {!product.is_active ? <Badge>inactive</Badge> : null}
+                            {!product.is_active ? <Badge>inativo</Badge> : null}
                             {!product.is_available ? (
-                              <Badge tone="yellow">unavailable</Badge>
+                              <Badge tone="yellow">indisponível</Badge>
                             ) : null}
                           </span>
                           <span className="font-medium text-slate-700">
@@ -140,7 +143,7 @@ export default async function MenuOverviewPage() {
           {products.some((p) => p.category_id === null) ? (
             <Card>
               <CardHeader>
-                <CardTitle>Without category</CardTitle>
+                <CardTitle>Sem categoria</CardTitle>
               </CardHeader>
               <CardContent>
                 <ul className="divide-y divide-slate-100">
