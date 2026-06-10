@@ -39,6 +39,23 @@ export interface AdminStrings {
   active: string;
   suspended: string;
   draft: string;
+  // Restaurant list filters & metadata
+  filterAll: string;
+  name: string;
+  slug: string;
+  orders: string;
+  hoursToday: string;
+  actions: string;
+  acceptingOrders: string;
+  ordersPaused: string;
+  openToday: string;
+  closedToday: string;
+  hoursNotConfigured: string;
+  emptyFilterTitle: string;
+  emptyFilterDescription: string;
+  activate: string;
+  suspend: string;
+  details: string;
 }
 
 export const ADMIN_STRINGS: Record<AppLanguage, AdminStrings> = {
@@ -69,6 +86,22 @@ export const ADMIN_STRINGS: Record<AppLanguage, AdminStrings> = {
     active: "Ativo",
     suspended: "Suspenso",
     draft: "Rascunho",
+    filterAll: "Todos",
+    name: "Nome",
+    slug: "Slug",
+    orders: "Pedidos",
+    hoursToday: "Horário hoje",
+    actions: "Ações",
+    acceptingOrders: "A aceitar pedidos",
+    ordersPaused: "Em pausa",
+    openToday: "Aberto hoje",
+    closedToday: "Fechado hoje",
+    hoursNotConfigured: "Horário não configurado",
+    emptyFilterTitle: "Sem restaurantes para este filtro.",
+    emptyFilterDescription: "Experimente outro estado ou crie um restaurante novo.",
+    activate: "Ativar",
+    suspend: "Suspender",
+    details: "Detalhes",
   },
   en: {
     overview: "Overview",
@@ -97,6 +130,22 @@ export const ADMIN_STRINGS: Record<AppLanguage, AdminStrings> = {
     active: "Active",
     suspended: "Suspended",
     draft: "Draft",
+    filterAll: "All",
+    name: "Name",
+    slug: "Slug",
+    orders: "Orders",
+    hoursToday: "Hours today",
+    actions: "Actions",
+    acceptingOrders: "Accepting orders",
+    ordersPaused: "Paused",
+    openToday: "Open today",
+    closedToday: "Closed today",
+    hoursNotConfigured: "Hours not configured",
+    emptyFilterTitle: "No restaurants for this filter.",
+    emptyFilterDescription: "Try another status or create a new restaurant.",
+    activate: "Activate",
+    suspend: "Suspend",
+    details: "Details",
   },
 };
 
