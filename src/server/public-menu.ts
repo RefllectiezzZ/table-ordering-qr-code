@@ -29,6 +29,8 @@ interface PublicRestaurantRow {
   welcome_message: string | null;
   default_language: Language;
   enabled_languages: Language[];
+  accepts_orders: boolean;
+  paused_message: string | null;
 }
 
 /**
@@ -58,7 +60,7 @@ export async function resolvePublicMenu(token: string): Promise<PublicMenuResolu
   const { data: restaurant } = await supabase
     .from("restaurants")
     .select(
-      "id, name, status, logo_url, cover_image_url, primary_color, secondary_color, background_color, welcome_message, default_language, enabled_languages",
+      "id, name, status, logo_url, cover_image_url, primary_color, secondary_color, background_color, welcome_message, default_language, enabled_languages, accepts_orders, paused_message",
     )
     .eq("id", table.restaurant_id)
     .maybeSingle<PublicRestaurantRow>();
@@ -183,6 +185,8 @@ export async function resolvePublicMenu(token: string): Promise<PublicMenuResolu
         welcomeMessage: restaurant.welcome_message,
         defaultLanguage: restaurant.default_language,
         enabledLanguages,
+        acceptsOrders: restaurant.accepts_orders,
+        pausedMessage: restaurant.paused_message,
       },
       table: {
         tableNumber: table.table_number,

@@ -44,6 +44,10 @@ const productTranslationSchema = z.object({
   description: optionalShortText(600),
 });
 
+/**
+ * Portuguese is the base language: every product must have a PT name. The
+ * other languages are optional translations and never block creation.
+ */
 const productTranslationsSchema = z
   .object({
     pt: productTranslationSchema.optional(),
@@ -51,8 +55,8 @@ const productTranslationsSchema = z
     es: productTranslationSchema.optional(),
     fr: productTranslationSchema.optional(),
   })
-  .refine((t) => Object.values(t).some(Boolean), {
-    message: "Provide a name in at least one language.",
+  .refine((t) => Boolean(t.pt?.name?.trim()), {
+    message: "O nome em português é obrigatório (idioma base).",
   });
 
 // ---------------------------------------------------------------------------
@@ -69,6 +73,16 @@ export const publicOrderSchema = z.object({
     .min(8)
     .max(128)
     .regex(/^[A-Za-z0-9_-]+$/),
+  /**
+   * Optional browser authorization token granted after staff confirmed this
+   * device's first order. Validated server-side against the stored hash; a
+   * missing or invalid token simply means the order starts as
+   * pending_confirmation — never an information leak.
+   */
+  session_token: z
+    .union([z.literal(""), z.string().min(32).max(64).regex(/^[A-Za-z0-9_-]+$/)])
+    .optional()
+    .transform((v) => (v ? v : null)),
   customer_note: optionalShortText(500),
   items: z
     .array(
@@ -83,11 +97,45 @@ export const publicOrderSchema = z.object({
 });
 export type PublicOrderInput = z.infer<typeof publicOrderSchema>;
 
+/** Public order status poll (query params, re-validated as a schema). */
+export const publicOrderStatusQuerySchema = z.object({
+  table_token: z
+    .string()
+    .min(10)
+    .max(64)
+    .regex(/^[A-Za-z0-9_-]+$/),
+  client_order_token: z
+    .string()
+    .min(8)
+    .max(128)
+    .regex(/^[A-Za-z0-9_-]+$/),
+});
+
 // ---------------------------------------------------------------------------
 // Restaurant: orders
 // ---------------------------------------------------------------------------
 export const orderStatusUpdateSchema = z.object({
   status: z.enum(ORDER_STATUSES),
+});
+
+// ---------------------------------------------------------------------------
+// Restaurant: table sessions
+// ---------------------------------------------------------------------------
+export const tableSessionCloseSchema = z.object({
+  /**
+   * Closing a session that still has open (not delivered/cancelled) orders is
+   * blocked unless the staff member explicitly confirms with force=true after
+   * seeing the warning.
+   */
+  force: z.boolean().optional().default(false),
+});
+
+// ---------------------------------------------------------------------------
+// Restaurant: order availability (pause ordering)
+// ---------------------------------------------------------------------------
+export const ordersAvailabilitySchema = z.object({
+  accepts_orders: z.boolean(),
+  paused_message: optionalShortText(300),
 });
 
 // ---------------------------------------------------------------------------

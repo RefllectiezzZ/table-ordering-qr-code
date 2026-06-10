@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -7,7 +7,21 @@ export const metadata: Metadata = {
     template: "%s | TableOrder",
   },
   description:
-    "Multi-tenant QR table ordering for small restaurants: branded digital menus, table QR codes and a live kitchen order board.",
+    "Menu QR, pedidos à mesa e painel de cozinha para restaurantes. QR table ordering with branded digital menus and a live kitchen board.",
+  applicationName: "TableOrder",
+  appleWebApp: {
+    capable: true,
+    title: "TableOrder",
+    statusBarStyle: "default",
+  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  // viewport-fit=cover lets the public menu pad around the iOS home indicator.
+  viewportFit: "cover",
+  themeColor: "#0f172a",
 };
 
 export default function RootLayout({
@@ -16,7 +30,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full antialiased">
+    <html lang="pt" className="h-full antialiased">
       <body className="flex min-h-full flex-col">{children}</body>
     </html>
   );

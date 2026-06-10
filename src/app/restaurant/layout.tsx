@@ -33,13 +33,13 @@ export default async function RestaurantLayout({ children }: { children: React.R
                 {restaurant?.status ?? "?"}
               </Badge>
               <span className="text-[11px] text-slate-400">
-                {isOwner ? "Owner" : "Staff"}
+                {isOwner ? "Responsável" : "Equipa"}
               </span>
             </div>
           </div>
           <form action="/auth/signout" method="post" className="lg:hidden">
             <Button type="submit" variant="ghost" size="sm">
-              Sign out
+              Sair
             </Button>
           </form>
         </div>
@@ -47,7 +47,7 @@ export default async function RestaurantLayout({ children }: { children: React.R
         <div className="hidden px-5 py-4 lg:block">
           <form action="/auth/signout" method="post">
             <Button type="submit" variant="outline" size="sm" className="w-full">
-              Sign out
+              Sair
             </Button>
           </form>
         </div>

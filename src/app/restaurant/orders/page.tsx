@@ -1,4 +1,5 @@
 import { OrdersBoard } from "@/components/restaurant/orders-board";
+import { parseOrdersFilter } from "@/lib/orders-filters";
 import { requireRestaurantUser } from "@/lib/security/guards";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { fetchDashboardOrders } from "@/server/dashboard-orders";
@@ -6,11 +7,19 @@ import type { Language } from "@/types/database";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = { title: "Orders" };
+export const metadata = { title: "Pedidos" };
 
-export default async function RestaurantOrdersPage() {
+export default async function RestaurantOrdersPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ view?: string; from?: string; to?: string }>;
+}) {
   const session = await requireRestaurantUser();
   const supabase = await createServerSupabaseClient();
+
+  // Filters live in the URL so a refresh keeps the selection; they are
+  // re-validated here before touching any query.
+  const filter = parseOrdersFilter(await searchParams);
 
   const { data: restaurant } = await supabase
     .from("restaurants")
@@ -22,17 +31,24 @@ export default async function RestaurantOrdersPage() {
     supabase,
     session.restaurantId,
     restaurant?.default_language ?? "pt",
+    filter,
   );
 
   return (
     <div className="p-4 sm:p-6">
-      <div className="mb-5">
-        <h1 className="text-xl font-bold text-slate-900">Orders</h1>
+      <div className="mb-4">
+        <h1 className="text-xl font-bold text-slate-900">Pedidos</h1>
         <p className="text-sm text-slate-500">
-          Live board for the kitchen — refreshes automatically every few seconds.
+          Atualiza automaticamente. Pedidos pendentes de confirmação aparecem na zona de
+          receção e nunca na cozinha.
         </p>
       </div>
-      <OrdersBoard initialOrders={orders} />
+      {/* Keyed by filter: changing filters remounts the board with fresh server data. */}
+      <OrdersBoard
+        key={`${filter.view}:${filter.fromIso ?? ""}:${filter.toIso ?? ""}`}
+        initialOrders={orders}
+        initialFilter={filter}
+      />
     </div>
   );
 }

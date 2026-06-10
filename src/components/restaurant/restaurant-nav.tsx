@@ -5,18 +5,19 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 const OWNER_LINKS = [
-  { href: "/restaurant/orders", label: "Orders" },
+  { href: "/restaurant/orders", label: "Pedidos" },
+  { href: "/restaurant/tables", label: "Mesas & QR" },
   { href: "/restaurant/menu", label: "Menu" },
-  { href: "/restaurant/categories", label: "Categories" },
-  { href: "/restaurant/products", label: "Products" },
-  { href: "/restaurant/tables", label: "Tables & QR codes" },
-  { href: "/restaurant/translations", label: "Translations" },
-  { href: "/restaurant/branding", label: "Branding" },
-  { href: "/restaurant/settings", label: "Settings" },
+  { href: "/restaurant/categories", label: "Categorias" },
+  { href: "/restaurant/products", label: "Produtos" },
+  { href: "/restaurant/translations", label: "Traduções" },
+  { href: "/restaurant/branding", label: "Marca" },
+  { href: "/restaurant/settings", label: "Definições" },
 ];
 
 const STAFF_LINKS = [
-  { href: "/restaurant/orders", label: "Orders" },
+  { href: "/restaurant/orders", label: "Pedidos" },
+  { href: "/restaurant/tables", label: "Mesas" },
   { href: "/restaurant/menu", label: "Menu" },
 ];
 

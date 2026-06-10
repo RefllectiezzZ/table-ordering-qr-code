@@ -4,18 +4,24 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
-const LINKS = [
-  { href: "/admin", label: "Overview", exact: true },
-  { href: "/admin/restaurants", label: "Restaurants" },
-  { href: "/admin/users", label: "Users" },
-];
+export interface AdminNavLabels {
+  overview: string;
+  restaurants: string;
+  users: string;
+}
 
-export function AdminNav() {
+export function AdminNav({ labels }: { labels: AdminNavLabels }) {
   const pathname = usePathname();
+
+  const links = [
+    { href: "/admin", label: labels.overview, exact: true },
+    { href: "/admin/restaurants", label: labels.restaurants, exact: false },
+    { href: "/admin/users", label: labels.users, exact: false },
+  ];
 
   return (
     <nav className="flex gap-1">
-      {LINKS.map((link) => {
+      {links.map((link) => {
         const active = link.exact
           ? pathname === link.href
           : pathname === link.href || pathname.startsWith(`${link.href}/`);

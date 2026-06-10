@@ -60,12 +60,69 @@ anything that touches data access.
 - Order item prices are read from `menu_products` at insert time
   (`src/lib/order-items.ts`), never from the request body.
 - Products in a public order must belong to the token's restaurant and be
-  active + available; suspended restaurants and inactive tables are rejected.
+  active + available; suspended restaurants, inactive tables and paused
+  ordering (`restaurants.accepts_orders = false`) are rejected.
 - Public order creation is idempotent via the unique
   `(restaurant_id, client_order_token)` constraint; unique-violation races return
   the existing order.
 - Order status changes validate transitions (`src/lib/orders.ts`); terminal
-  states cannot be reopened.
+  states cannot be reopened. `pending_confirmation` can only be left through
+  the dedicated confirm/reject endpoints — the generic status route refuses
+  it, so the table-session attachment can never be skipped.
+
+## First-order confirmation & table sessions (saved-QR abuse defense)
+
+- Printed QR codes are fixed; abuse protection is operational, not
+  cryptographic rotation:
+  - an order without a valid browser authorization starts as
+    `pending_confirmation` and is **never** shown as kitchen-ready;
+  - staff confirm/reject from the reception area
+    (`POST /api/restaurant/orders/[id]/confirm|reject`);
+  - confirmation creates/joins the table's open `table_sessions` row
+    (race-safe partial unique index: one open session per table).
+- Browser authorizations (`table_session_access_tokens`):
+  - only the SHA-256 hash is stored; the raw token is delivered exactly once
+    through `GET /api/public/orders/status`, gated by the order's own
+    `client_order_token` (random UUID known only to the ordering device) and a
+    partial unique index on `source_order_id`;
+  - tokens are scoped to (restaurant, table, session), expire after 8 hours
+    and are revoked when the session closes;
+  - an invalid/expired/revoked token silently degrades the order to
+    `pending_confirmation` — same external behavior as no token, so nothing
+    can be probed.
+- Closing a session (`POST /api/restaurant/table-sessions/[id]/close`)
+  revokes all of its authorizations and is blocked while open orders remain
+  unless staff explicitly confirm (force flag after a warning). Orders are
+  never deleted by closing.
+- All staff session/confirmation endpoints derive `restaurant_id` from the
+  authenticated profile, validate the order/table/session against it through
+  the user-scoped client (RLS re-checks), and only then perform the
+  service-role writes that the narrowed column grants require.
+- `GET /api/public/orders/status` requires BOTH the table QR token and the
+  order's `client_order_token`; it returns only the order's short code,
+  number and status (plus the one-time session token) and is rate-limited per
+  IP + table token.
+
+## Product image uploads (Supabase Storage)
+
+- Bucket `product-images` is public-read (menu photos), write-restricted:
+  no anon/authenticated storage policies exist, so the only write path is
+  `POST /api/restaurant/products/upload-image` (owner-only, same-origin).
+- The storage path is built **server-side** from the session's
+  `restaurant_id` plus a random UUID filename — clients never influence the
+  path, so cross-tenant overwrites are impossible.
+- Validation: 5 MB cap and JPEG/PNG/WebP checked by **magic bytes**, not just
+  the declared content type; the bucket enforces the same limits as metadata.
+
+## Auth redirects
+
+- Sign-out (`POST /auth/signout`) redirects to a fixed app path built from
+  `NEXT_PUBLIC_APP_URL` (`src/lib/app-url.ts`) — never from `request.url`,
+  which can carry a wrong `https://` scheme behind proxies (the
+  "https://localhost:3000" bug), and never from user input (no open-redirect
+  surface). The localhost fallback applies only when the env var is unset.
+- Post-login redirects accept only same-origin relative paths
+  (`safeRedirect` in `src/components/auth/login-form.tsx`).
 
 ## Caching
 

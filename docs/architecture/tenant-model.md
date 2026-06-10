@@ -12,7 +12,8 @@ Every private/business entity carries (directly or via its parent) a
 `restaurant_id`:
 
 - direct: `restaurant_tables`, `menu_categories`, `menu_products`, `orders`,
-  `audit_logs`, `import_batches`, `profiles` (for restaurant roles)
+  `table_sessions`, `table_session_access_tokens`, `audit_logs`,
+  `import_batches`, `profiles` (for restaurant roles)
 - via parent: `menu_category_translations` (→ category), `menu_product_translations`
   (→ product), `order_items` (→ order), `import_rows` (→ batch)
 
@@ -40,19 +41,55 @@ qr public_token ──> restaurant_tables.id ──> restaurants.id
 - Tokens are never reused or reassigned. Deactivating a table immediately blocks
   menu access and ordering for its token.
 
+## Table sessions and browser authorizations
+
+Printed QR codes are fixed, so order intake is protected by an operational
+layer instead of rotating codes:
+
+```
+table_sessions            one OPEN session ("tab") per table at a time
+                          (partial unique index on table_id WHERE status='open')
+table_session_access_tokens
+                          hashed browser authorizations, scoped to
+                          (restaurant_id, table_id, table_session_id)
+```
+
+- An order submitted **without** a valid browser authorization starts as
+  `pending_confirmation` and never appears as kitchen-ready.
+- Staff confirm the order; confirmation finds/creates the table's open session
+  and attaches the order to it.
+- The ordering device then receives one raw authorization token through the
+  public status poll, authenticated by its own `client_order_token`. Only the
+  SHA-256 hash is stored. Subsequent orders from that device go straight to
+  `new` while the session stays open and the token has not expired (8h cap).
+- Closing the session revokes every authorization granted during it; the next
+  customers at the same printed QR go through confirmation again. Closed
+  sessions and their orders remain in history and never mix with the current
+  occupation.
+- Sessions are readable (SELECT) by the restaurant's members and platform
+  admins only. All writes — open, close, attach, token issuance/revocation —
+  happen in server-only route handlers after membership validation; there are
+  **no** INSERT/UPDATE policies for the authenticated role, and the access
+  token table has no policies at all (service-role only, not even readable by
+  staff).
+
 ## Public vs private data
 
-Public (served via `/t/[token]` and `POST /api/public/orders` only):
+Public (served via `/t/[token]`, `POST /api/public/orders` and
+`GET /api/public/orders/status` only):
 
 - restaurant branding fields (name, logo/cover URLs, colors, welcome message,
-  languages), table number/label, **active** categories + translations,
-  **active** products + translations/prices/allergens, created order summary
-  (short code, status, total).
+  languages, accepts-orders flag + pause message), table number/label,
+  **active** categories + translations, **active** products +
+  translations/prices/allergens/images, created order summary (short code,
+  per-restaurant order number, status, total), and — exactly once, to the
+  device that placed the confirmed order — the session authorization token.
 
 Private (never exposed publicly):
 
 - staff/user data, other tables' tokens, other restaurants' anything, audit logs,
-  import batches, internal settings, full order history.
+  import batches, internal settings, full order history, table session
+  internals (ids/opened_by/notes), access-token hashes.
 
 The anon Postgres role has **no table access at all**. Public reads/writes are
 performed by server-only code using the service-role client with an explicit,

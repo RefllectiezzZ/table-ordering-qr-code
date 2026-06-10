@@ -79,9 +79,11 @@ export default async function ProductsPage() {
   return (
     <div className="p-4 sm:p-6">
       <div className="mb-5">
-        <h1 className="text-xl font-bold text-slate-900">Products</h1>
-        <p className="text-sm text-slate-500">
-          Prices are entered in EUR and stored as cents. Allergens use the 14 stable EU codes.
+        <h1 className="text-xl font-bold text-slate-900">Produtos</h1>
+        <p className="max-w-2xl text-sm text-slate-500">
+          O português é o idioma base e é obrigatório; English, Español e Français são traduções
+          opcionais. Os alérgenos usam os 14 códigos estáveis da UE e são traduzidos
+          automaticamente no menu público.
         </p>
       </div>
       <ProductsManager products={products} categories={categories} />

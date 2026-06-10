@@ -11,11 +11,30 @@ status.
 Deliberate simplifications. They do not block local/manual testing of the full
 flow and carry no security risk.
 
-- **No image uploads** — branding and product images are URL fields. The
-  schema already has the URL columns, so adding Supabase Storage later needs
-  no migration.
+- **Product image uploads exist; branding images are still URL fields.**
+  Product photos upload to the `product-images` Supabase Storage bucket
+  through an owner-only validated route. Logo/cover on the branding page
+  remain URL inputs (same upload pattern can be reused later).
+- **Replaced product images are not deleted from storage** — uploading a new
+  photo just changes `image_url`; the old object stays in the bucket until a
+  cleanup job exists. Cost is negligible at pilot scale.
 - **Polling, not realtime**: the kitchen board refreshes every 8 seconds via a
-  `no-store` GET endpoint.
+  `no-store` GET endpoint; the public order status view polls every 5 seconds
+  while an order is pending/open.
+- **Browser authorization delivery is one-shot.** If the customer's device
+  misses the single status response carrying the session token (e.g. cleared
+  storage, lost response), that device simply goes through staff confirmation
+  again on its next order. No recovery endpoint by design.
+- **Table sessions do not auto-close.** Staff close them from the floor view;
+  authorizations expire after 8 hours regardless. An automatic
+  end-of-day/cron close is a follow-up.
+- The orders **"Hoje" quick filter** uses the Europe/Lisbon day start (the
+  pilot market); restaurants in other timezones should use the custom range
+  filter until per-restaurant timezones exist.
+- **Order numbers** are assigned by a per-restaurant counter inside a
+  `BEFORE INSERT` trigger (row-locked upsert, race-safe). Orders created
+  before this migration were backfilled in `created_at` order; their numbers
+  are stable but historical.
 - **No sound notification** on the kitchen board (browsers require a user
   gesture for audio). New orders pulse visually instead.
 - **No order editing/refunds/partial cancels** — only validated status
@@ -29,8 +48,16 @@ flow and carry no security risk.
 - Category sorting is numeric `sort_order` only, no drag-and-drop UI.
 - `dietary_tags` are free-text chips; no controlled vocabulary yet.
 - **Manual smoke tests instead of automated E2E** — unit tests cover the
-  security-critical pure logic (tokens, money, CSV, transitions, order
-  building); `docs/testing/smoke-test.md` is the manual end-to-end procedure.
+  security-critical pure logic (tokens, session tokens, money, CSV,
+  transitions, order building, filters, contrast); `docs/testing/smoke-test.md`
+  is the manual end-to-end procedure.
+- **Dashboard language**: the kitchen-facing pages (orders, tables/floor,
+  products, settings) are Portuguese-first for the pilot; the admin area and
+  landing/legal pages are switchable PT/EN. Remaining owner pages
+  (branding/categories/translations) still have English labels — follow-up.
+- **No full draft/published menu mode.** `is_active` (visible on the public
+  menu) and `is_available` (orderable right now) cover the pilot; a staged
+  publish flow is a documented future improvement.
 - TypeScript row types are **hand-written** (`src/types/database.ts`), not
   generated from the schema; update them by hand on schema changes.
 - The same-origin guard on private mutations relies on `Origin` /
@@ -61,18 +88,22 @@ These are tracked as checkboxes in `docs/launch/launch-gates.md`.
   placeholders.
 - **Production monitoring and log review** — uptime check on `/api/health`,
   error tracking, and a pass over logs to confirm no secrets/PII.
-- **Storage policy review when image uploads are added** — Supabase Storage
-  buckets need their own RLS-equivalent policies before going live with
-  uploads.
+- **Storage bucket review in production** — confirm the `product-images`
+  bucket exists with the migration's limits and that no anon/authenticated
+  write policies were added by hand.
 - **Final manual smoke test with realistic restaurant data** (full
-  `docs/testing/smoke-test.md` run against the production project).
+  `docs/testing/smoke-test.md` run against the production project), including
+  the first-order confirmation and session close flows.
 
 ## 3. Post-MVP product/engineering follow-ups
 
 Backlog — valuable, but neither local testing nor a small pilot depends on
 them.
 
-- Supabase Storage image uploads (logo, cover, product photos).
+- Supabase Storage uploads for branding images (logo, cover) reusing the
+  product-image upload pattern; storage cleanup for replaced images.
+- Automatic table-session close (end-of-day cron) and per-restaurant timezone
+  setting for the "today" filter.
 - Supabase Realtime for the kitchen board (replace polling).
 - Kitchen sound notification (needs a user-gesture-gated audio setup).
 - Email invite flow for restaurant users (today: admin sets an initial

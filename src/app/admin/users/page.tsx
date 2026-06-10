@@ -2,6 +2,8 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ADMIN_STRINGS } from "@/lib/i18n/app";
+import { getAppLanguage } from "@/lib/i18n/server";
 import { requirePlatformAdmin } from "@/lib/security/guards";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { formatDateTime } from "@/lib/utils";
@@ -19,6 +21,7 @@ const ROLE_LABEL: Record<ProfileRow["role"], string> = {
 
 export default async function AdminUsersPage() {
   await requirePlatformAdmin();
+  const t = ADMIN_STRINGS[await getAppLanguage()];
   const supabase = await createServerSupabaseClient();
 
   const [{ data: profilesData }, { data: restaurantsData }] = await Promise.all([
@@ -37,12 +40,8 @@ export default async function AdminUsersPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-xl font-bold text-slate-900">Users</h1>
-        <p className="max-w-2xl text-sm text-slate-500">
-          All application profiles. Restaurant users are created from each restaurant&apos;s
-          detail page. Platform admins are provisioned manually (see docs/testing/smoke-test.md) —
-          a self-service invite flow is a documented follow-up.
-        </p>
+        <h1 className="text-xl font-bold text-slate-900">{t.usersTitle}</h1>
+        <p className="max-w-2xl text-sm text-slate-500">{t.usersSubtitle}</p>
       </div>
 
       {profiles.length === 0 ? (
@@ -56,10 +55,10 @@ export default async function AdminUsersPage() {
             <table className="w-full text-left text-sm">
               <thead className="bg-slate-50 text-xs text-slate-500">
                 <tr>
-                  <th className="px-4 py-3">User</th>
-                  <th className="px-4 py-3">Role</th>
-                  <th className="px-4 py-3">Restaurant</th>
-                  <th className="px-4 py-3">Created</th>
+                  <th className="px-4 py-3">{t.user}</th>
+                  <th className="px-4 py-3">{t.role}</th>
+                  <th className="px-4 py-3">{t.restaurant}</th>
+                  <th className="px-4 py-3">{t.created}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">

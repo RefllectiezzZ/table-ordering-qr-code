@@ -3,6 +3,18 @@
 Stable contract for the export/import workflow on `/restaurant/translations`.
 Implementation: `src/lib/csv/translation-csv.ts` (keep both in sync).
 
+## Recommended workflow
+
+1. Create products in **Portuguese** (the base language, required in the
+   product form; EN/ES/FR never block creation).
+2. Export ONE multi-language CSV from `/restaurant/translations`.
+3. Translate outside the app (manually or with any tool you trust).
+4. Import the translated CSV; review the preview (matched IDs, fields to
+   update, warnings/errors).
+5. Commit only after explicit confirmation.
+
+There is no per-language import and no built-in translation API on purpose.
+
 ## Columns (exact set; order-insensitive on import, matched by header name)
 
 ```
