@@ -38,3 +38,16 @@ body {
 .order-new-highlight {
   animation: pulse-highlight 1.6s ease-in-out infinite;
 }
+
+/* iOS Safari bottom bar: keep sticky action bars above the home indicator. */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Hide horizontal scrollbars on pill/category rails. */
+.scrollbar-none {
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
