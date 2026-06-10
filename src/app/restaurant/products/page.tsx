@@ -82,7 +82,7 @@ export default async function ProductsPage() {
         <h1 className="text-xl font-bold text-slate-900">Produtos</h1>
         <p className="max-w-2xl text-sm text-slate-500">
           O português é o idioma base e é obrigatório; English, Español e Français são traduções
-          opcionais. Os alérgenos usam os 14 códigos estáveis da UE e são traduzidos
+          opcionais. Os alergénios usam os 14 códigos estáveis da UE e são traduzidos
           automaticamente no menu público.
         </p>
       </div>

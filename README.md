@@ -32,7 +32,8 @@ manages the restaurants themselves.
    Uploads only ever go through the server-side route handler; do not add
    anon/authenticated write policies to the bucket.
 3. Optional but recommended: run `supabase/seed.sql` for the demo restaurant
-   ("Demo Brunch", with two demo QR tokens used by the landing page).
+   ("Demo Brunch", with two fixed demo QR tokens for **local testing only** —
+   the public landing page does not link to them).
 
 ### 2. Environment
 
@@ -71,7 +72,7 @@ npm run dev
   user, activate it
 - log in as the owner → `/restaurant` — build the menu, create tables, print QR codes
 - open a table QR URL (`/t/<token>`) in a private window — order as a customer
-- demo menu (after seeding): `/t/demo-mesa-1-k3v9q2x8w7z4`
+- demo menu for local testing (after seeding): `/t/demo-mesa-1-k3v9q2x8w7z4`
 
 The full step-by-step checklist lives in
 [`docs/testing/smoke-test.md`](docs/testing/smoke-test.md).

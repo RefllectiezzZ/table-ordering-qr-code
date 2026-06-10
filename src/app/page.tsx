@@ -3,19 +3,28 @@ import { LanguageToggle } from "@/components/i18n/language-toggle";
 import { Button } from "@/components/ui/button";
 import { LANDING_STRINGS } from "@/lib/i18n/landing";
 import { getAppLanguage } from "@/lib/i18n/server";
+import { getSessionProfile } from "@/lib/security/guards";
 
-// Reads the language cookie, so it renders per-request.
+// Reads the language cookie and the auth session, so it renders per-request.
 export const dynamic = "force-dynamic";
 
-const DEMO_MENU_PATH = "/t/demo-mesa-1-k3v9q2x8w7z4";
-
 const STEP_ICONS = ["📱", "🛒", "👨‍🍳"];
-const FEATURE_ICONS = ["🎨", "✅", "📋", "🌍", "⚠️", "⏸️"];
+const FEATURE_ICONS = ["🎨", "✅", "📋", "🌍", "⚠️", "🕐"];
 const TRUST_ICONS = ["🔒", "🧮", "🙈"];
 
 export default async function LandingPage() {
   const lang = await getAppLanguage();
   const t = LANDING_STRINGS[lang];
+
+  // Signed-in users get a direct path to their own area instead of a second
+  // trip through /login. The destination comes from the server-side profile
+  // role, never from anything client-provided.
+  const session = await getSessionProfile();
+  const dashboardHref = session
+    ? session.profile.role === "platform_admin"
+      ? "/admin"
+      : "/restaurant"
+    : null;
 
   return (
     <main className="flex-1 bg-white">
@@ -26,16 +35,16 @@ export default async function LandingPage() {
             Table<span className="text-amber-600">Order</span>
           </span>
           <nav className="flex items-center gap-2 sm:gap-3">
-            <Link
-              href={DEMO_MENU_PATH}
-              className="hidden text-sm font-medium text-slate-600 hover:text-slate-900 sm:block"
-            >
-              {t.navDemo}
-            </Link>
             <LanguageToggle current={lang} />
-            <Link href="/login">
-              <Button size="sm">{t.navLogin}</Button>
-            </Link>
+            {dashboardHref ? (
+              <Link href={dashboardHref}>
+                <Button size="sm">{t.navDashboard}</Button>
+              </Link>
+            ) : (
+              <Link href="/login">
+                <Button size="sm">{t.navLogin}</Button>
+              </Link>
+            )}
           </nav>
         </div>
       </header>
@@ -61,23 +70,22 @@ export default async function LandingPage() {
             {t.heroSubtitle}
           </p>
           <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
-            <Link href="/login">
+            <Link href={dashboardHref ?? "/login"}>
               <Button size="lg" className="shadow-lg shadow-slate-900/10">
-                {t.ctaLogin}
+                {dashboardHref ? t.ctaDashboard : t.ctaLogin}
               </Button>
             </Link>
-            <Link href={DEMO_MENU_PATH}>
+            <a href="#como-funciona">
               <Button size="lg" variant="outline">
-                {t.ctaDemo}
+                {t.ctaHowItWorks}
               </Button>
-            </Link>
+            </a>
           </div>
-          <p className="mt-4 text-xs text-slate-400">{t.demoNote}</p>
         </div>
       </section>
 
       {/* How it works */}
-      <section className="border-t border-slate-100 bg-slate-50">
+      <section id="como-funciona" className="border-t border-slate-100 bg-slate-50">
         <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
           <h2 className="text-center text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">
             {t.howTitle}
@@ -132,23 +140,23 @@ export default async function LandingPage() {
             </div>
           </div>
 
-          {/* CSS phone mockup of the public menu */}
+          {/* CSS phone mockup of the public menu (fictional restaurant) */}
           <div className="flex flex-col items-center">
             <div className="w-64 rounded-[2rem] border-8 border-slate-900 bg-white shadow-2xl">
               <div className="rounded-t-[1.5rem] bg-gradient-to-br from-amber-600 to-orange-500 px-4 pb-6 pt-5">
                 <div className="flex items-center gap-2.5">
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-base font-extrabold text-amber-600">
-                    D
+                    A
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-white">Demo Brunch</p>
-                    <p className="text-[10px] font-semibold text-amber-100">Mesa 1</p>
+                    <p className="text-sm font-bold text-white">Café Aurora</p>
+                    <p className="text-[10px] font-semibold text-amber-100">Mesa 4</p>
                   </div>
                 </div>
               </div>
               <div className="space-y-2.5 px-3 py-4">
                 {[
-                  { name: "Croissant de Nutella", price: "3,50 €" },
+                  { name: "Croissant misto", price: "3,50 €" },
                   { name: "Cappuccino", price: "2,20 €" },
                   { name: "Panqueca de frutos vermelhos", price: "6,50 €" },
                 ].map((item) => (
@@ -166,7 +174,7 @@ export default async function LandingPage() {
                   </div>
                 ))}
                 <div className="flex items-center justify-between rounded-xl bg-slate-900 px-3 py-2.5">
-                  <span className="text-[10px] font-semibold text-slate-300">2 · Mesa 1</span>
+                  <span className="text-[10px] font-semibold text-slate-300">2 · Mesa 4</span>
                   <span className="text-[11px] font-bold text-white">5,70 €</span>
                 </div>
               </div>
@@ -230,18 +238,9 @@ export default async function LandingPage() {
           </h2>
           <p className="mt-3 text-sm text-slate-300">{t.finalCtaSubtitle}</p>
           <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
-            <Link href="/login">
+            <Link href={dashboardHref ?? "/login"}>
               <Button size="lg" className="bg-amber-500 text-slate-900 hover:bg-amber-400">
-                {t.ctaLogin}
-              </Button>
-            </Link>
-            <Link href={DEMO_MENU_PATH}>
-              <Button
-                size="lg"
-                variant="outline"
-                className="border-slate-600 bg-transparent text-white hover:bg-slate-800"
-              >
-                {t.ctaDemo}
+                {dashboardHref ? t.ctaDashboard : t.ctaLogin}
               </Button>
             </Link>
           </div>

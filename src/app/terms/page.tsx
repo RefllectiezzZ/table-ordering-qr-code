@@ -41,7 +41,7 @@ function TermsPt() {
           <li>manter o menu correto, incluindo nomes e descrições dos produtos;</li>
           <li>definir e atualizar os preços;</li>
           <li>indicar a disponibilidade real dos produtos;</li>
-          <li>validar a informação de ingredientes e alérgenos;</li>
+          <li>validar a informação de ingredientes e alergénios;</li>
           <li>rever as traduções que decide publicar;</li>
           <li>preparar e entregar os pedidos que aceita.</li>
         </ul>
@@ -65,13 +65,13 @@ function TermsPt() {
         </p>
       </section>
       <section>
-        <h2>5. Alérgenos</h2>
+        <h2>5. Alergénios</h2>
         <p>
-          A informação de alérgenos apresentada nos menus é fornecida e validada por cada
+          A informação de alergénios apresentada nos menus é fornecida e validada por cada
           restaurante, não por nós. Quem tem alergias ou intolerâncias alimentares deve sempre
           confirmar diretamente com a equipa do restaurante antes de consumir. Veja o{" "}
           <a href="/allergen-disclaimer" className="text-sky-700 underline">
-            aviso sobre alérgenos
+            aviso sobre alergénios
           </a>
           .
         </p>

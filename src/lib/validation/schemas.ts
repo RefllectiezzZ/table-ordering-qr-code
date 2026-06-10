@@ -139,6 +139,49 @@ export const ordersAvailabilitySchema = z.object({
 });
 
 // ---------------------------------------------------------------------------
+// Restaurant: opening hours
+// One interval per weekday; closes_at <= opens_at means overnight (the
+// interval spills into the next day). Times are validated server-side and
+// evaluated in the restaurant's timezone — never on the client clock.
+// ---------------------------------------------------------------------------
+const timeHHMM = z
+  .string()
+  .regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Use o formato HH:MM (24h).");
+
+const optionalTimeHHMM = z
+  .union([z.literal(""), z.null(), timeHHMM])
+  .optional()
+  .transform((v) => (v ? v : null));
+
+const openingHourDaySchema = z
+  .object({
+    weekday: z.number().int().min(0).max(6),
+    is_closed: z.boolean(),
+    opens_at: optionalTimeHHMM,
+    closes_at: optionalTimeHHMM,
+    notes: optionalShortText(200),
+  })
+  .refine(
+    (d) =>
+      d.is_closed ||
+      (d.opens_at !== null && d.closes_at !== null && d.opens_at !== d.closes_at),
+    {
+      message:
+        "Dias abertos precisam de hora de abertura e de fecho (diferentes entre si).",
+    },
+  );
+
+export const openingHoursUpdateSchema = z
+  .object({
+    days: z.array(openingHourDaySchema).min(1).max(7),
+  })
+  .refine(
+    (data) => new Set(data.days.map((d) => d.weekday)).size === data.days.length,
+    { message: "Cada dia da semana só pode aparecer uma vez." },
+  );
+export type OpeningHoursUpdateInput = z.infer<typeof openingHoursUpdateSchema>;
+
+// ---------------------------------------------------------------------------
 // Restaurant: categories
 // ---------------------------------------------------------------------------
 export const categoryCreateSchema = z.object({

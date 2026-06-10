@@ -83,7 +83,7 @@ function statusLabel(status: OrderStatus, t: PublicMenuStrings): string {
 }
 
 export function PublicMenuClient({ data }: { data: PublicMenuData }) {
-  const { restaurant, table, categories } = data;
+  const { restaurant, table, categories, opening } = data;
   const [language, setLanguage] = useState<Language>(restaurant.defaultLanguage);
   const [view, setView] = useState<View>("menu");
   const [cart, setCart] = useState<CartLine[]>([]);
@@ -98,6 +98,14 @@ export function PublicMenuClient({ data }: { data: PublicMenuData }) {
   const [sessionEnded, setSessionEnded] = useState(false);
   const [paused, setPaused] = useState(!restaurant.acceptsOrders);
   const [pausedMessage, setPausedMessage] = useState(restaurant.pausedMessage);
+  // Opening hours come evaluated from the server (restaurant timezone). The
+  // server also re-checks on submit; this state only drives the UI.
+  const [closedBySchedule, setClosedBySchedule] = useState(
+    opening.configured && !opening.isOpenNow,
+  );
+  const [activeCategory, setActiveCategory] = useState<string | null>(
+    categories[0]?.id ?? null,
+  );
 
   const t = PUBLIC_MENU_STRINGS[language];
 
@@ -105,7 +113,8 @@ export function PublicMenuClient({ data }: { data: PublicMenuData }) {
   const primary = restaurant.primaryColor;
   const onPrimary = readableTextColor(primary);
   const accent = safeAccentColor(primary);
-  const headerGradient = `linear-gradient(135deg, ${primary}, ${restaurant.secondaryColor ?? primary})`;
+  const secondary = restaurant.secondaryColor ?? primary;
+  const headerGradient = `linear-gradient(140deg, ${primary} 0%, ${secondary} 100%)`;
 
   const productById = useMemo(() => {
     const map = new Map<string, PublicProduct>();
@@ -120,6 +129,14 @@ export function PublicMenuClient({ data }: { data: PublicMenuData }) {
     (sum, line) => sum + line.quantity * (productById.get(line.productId)?.priceCents ?? 0),
     0,
   );
+
+  // Order blocking precedence for messaging: paused > closed by schedule.
+  const submitBlocked = paused || closedBySchedule;
+
+  const todayHoursLabel =
+    opening.configured && opening.today && !opening.today.isClosed && opening.today.opensAt
+      ? `${opening.today.opensAt}–${opening.today.closesAt}`
+      : null;
 
   const checkOrderStatus = useCallback(
     async (orderClientToken: string) => {
@@ -187,6 +204,28 @@ export function PublicMenuClient({ data }: { data: PublicMenuData }) {
     return () => clearInterval(interval);
   }, [activeOrder, checkOrderStatus]);
 
+  // Scroll-spy for the sticky category rail: highlight the section closest
+  // to the top of the viewport while browsing the menu.
+  useEffect(() => {
+    if (view !== "menu" || typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+        if (visible[0]) {
+          setActiveCategory(visible[0].target.id.replace("cat-", ""));
+        }
+      },
+      { rootMargin: "-96px 0px -65% 0px" },
+    );
+    for (const category of categories) {
+      const element = document.getElementById(`cat-${category.id}`);
+      if (element) observer.observe(element);
+    }
+    return () => observer.disconnect();
+  }, [view, categories]);
+
   function addToCart(productId: string) {
     setCart((current) => {
       const existing = current.find((line) => line.productId === productId);
@@ -220,7 +259,7 @@ export function PublicMenuClient({ data }: { data: PublicMenuData }) {
   }
 
   async function submitOrder() {
-    if (cart.length === 0 || submitting) return;
+    if (cart.length === 0 || submitting || submitBlocked) return;
     setSubmitting(true);
     setSubmitError(null);
 
@@ -251,6 +290,10 @@ export function PublicMenuClient({ data }: { data: PublicMenuData }) {
           setPaused(true);
           if (payload.message) setPausedMessage(payload.message);
           setSubmitError(payload.message ?? t.ordersPausedBanner);
+        } else if (payload.error === "restaurant_closed") {
+          // The server is the source of truth for opening hours: reflect it.
+          setClosedBySchedule(true);
+          setSubmitError(t.closedBanner);
         } else {
           setSubmitError(t.orderFailed);
         }
@@ -300,9 +343,17 @@ export function PublicMenuClient({ data }: { data: PublicMenuData }) {
       : `#${activeOrder.shortCode}`
     : "";
 
+  function categoryName(category: (typeof categories)[number]): string {
+    return (
+      category.translations[language]?.name ??
+      category.translations[restaurant.defaultLanguage]?.name ??
+      "—"
+    );
+  }
+
   return (
     <main
-      className="min-h-screen flex-1 pb-32"
+      className="min-h-screen flex-1 overflow-x-hidden pb-36"
       style={
         {
           backgroundColor: restaurant.backgroundColor,
@@ -313,52 +364,92 @@ export function PublicMenuClient({ data }: { data: PublicMenuData }) {
       {/* Header / branding */}
       <header className="relative">
         {restaurant.coverImageUrl ? (
-          <div className="relative h-40 w-full sm:h-52">
+          <div className="relative h-44 w-full sm:h-56">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={restaurant.coverImageUrl}
               alt=""
               className="h-full w-full object-cover"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" />
           </div>
         ) : (
-          <div className="h-28 w-full sm:h-32" style={{ background: headerGradient }} />
-        )}
-        <div className="mx-auto w-full max-w-lg px-4">
-          <div className="-mt-10 flex items-end gap-3">
-            {restaurant.logoUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={restaurant.logoUrl}
-                alt={restaurant.name}
-                className="h-20 w-20 rounded-2xl border-4 border-white bg-white object-cover shadow-lg"
-              />
-            ) : (
-              <div
-                className="flex h-20 w-20 items-center justify-center rounded-2xl border-4 border-white text-3xl font-bold shadow-lg"
-                style={{ backgroundColor: primary, color: onPrimary }}
-              >
-                {restaurant.name.charAt(0)}
-              </div>
-            )}
-            <div className="min-w-0 pb-1.5">
-              <h1 className="truncate text-xl font-extrabold tracking-tight text-slate-900">
-                {restaurant.name}
-              </h1>
-              <span
-                className="mt-1 inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold"
-                style={{ backgroundColor: primary, color: onPrimary }}
-              >
-                {tableDisplay}
-              </span>
-            </div>
+          <div className="relative h-36 w-full sm:h-44" style={{ background: headerGradient }}>
+            {/* Subtle texture so flat brand colors don't feel dull. */}
+            <div
+              aria-hidden
+              className="absolute inset-0"
+              style={{
+                background:
+                  "radial-gradient(120% 80% at 85% -20%, rgba(255,255,255,0.28), transparent 60%), radial-gradient(80% 60% at 10% 110%, rgba(0,0,0,0.18), transparent 55%)",
+              }}
+            />
           </div>
-          {restaurant.welcomeMessage ? (
-            <p className="mt-3 text-sm leading-relaxed text-slate-600">
-              {restaurant.welcomeMessage}
-            </p>
-          ) : null}
+        )}
+
+        <div className="mx-auto w-full max-w-lg px-4">
+          {/* Identity card overlapping the cover */}
+          <div className="fade-in-up relative -mt-14 rounded-3xl border border-black/5 bg-white p-4 shadow-lg shadow-black/5">
+            <div className="flex items-center gap-3.5">
+              {restaurant.logoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={restaurant.logoUrl}
+                  alt={restaurant.name}
+                  className="h-16 w-16 shrink-0 rounded-2xl border border-black/5 bg-white object-cover shadow-sm"
+                />
+              ) : (
+                <div
+                  className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl text-2xl font-extrabold shadow-sm"
+                  style={{ background: headerGradient, color: onPrimary }}
+                >
+                  {restaurant.name.charAt(0)}
+                </div>
+              )}
+              <div className="min-w-0">
+                <h1 className="truncate text-xl font-extrabold tracking-tight text-slate-900">
+                  {restaurant.name}
+                </h1>
+                <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                  <span
+                    className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold"
+                    style={{ backgroundColor: primary, color: onPrimary }}
+                  >
+                    {tableDisplay}
+                  </span>
+                  {opening.configured ? (
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold",
+                        closedBySchedule
+                          ? "bg-slate-100 text-slate-600"
+                          : "bg-emerald-100 text-emerald-800",
+                      )}
+                    >
+                      <span
+                        aria-hidden
+                        className={cn(
+                          "h-1.5 w-1.5 rounded-full",
+                          closedBySchedule ? "bg-slate-400" : "bg-emerald-500",
+                        )}
+                      />
+                      {closedBySchedule ? t.closedNow : t.openNow}
+                    </span>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+            {restaurant.welcomeMessage ? (
+              <p className="mt-3 text-sm leading-relaxed text-slate-600">
+                {restaurant.welcomeMessage}
+              </p>
+            ) : null}
+            {todayHoursLabel ? (
+              <p className="mt-2 text-xs text-slate-400">
+                {t.todayHours}: {todayHoursLabel}
+              </p>
+            ) : null}
+          </div>
 
           {/* Language switcher */}
           {restaurant.enabledLanguages.length > 1 ? (
@@ -373,7 +464,7 @@ export function PublicMenuClient({ data }: { data: PublicMenuData }) {
                     "min-h-9 rounded-full border px-3.5 text-xs font-semibold transition-colors",
                     language === lang
                       ? "border-transparent shadow-sm"
-                      : "border-slate-300 bg-white text-slate-600",
+                      : "border-slate-300 bg-white text-slate-600 hover:border-slate-400",
                   )}
                   style={
                     language === lang ? { backgroundColor: primary, color: onPrimary } : {}
@@ -385,17 +476,31 @@ export function PublicMenuClient({ data }: { data: PublicMenuData }) {
             </div>
           ) : null}
 
-          {/* Ordering paused banner */}
+          {/* Availability banners (clearest message wins: paused > closed) */}
           {paused ? (
-            <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm leading-relaxed text-amber-900">
-              <p className="font-semibold">{t.ordersPausedBanner}</p>
-              {pausedMessage ? <p className="mt-0.5">{pausedMessage}</p> : null}
+            <div className="fade-in-up mt-4 flex items-start gap-2.5 rounded-2xl border border-amber-200 bg-amber-50 p-3.5 text-sm leading-relaxed text-amber-900">
+              <span aria-hidden className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-amber-500" />
+              <div>
+                <p className="font-semibold">{t.ordersPausedBanner}</p>
+                {pausedMessage ? <p className="mt-0.5">{pausedMessage}</p> : null}
+              </div>
+            </div>
+          ) : closedBySchedule ? (
+            <div className="fade-in-up mt-4 flex items-start gap-2.5 rounded-2xl border border-slate-200 bg-white p-3.5 text-sm leading-relaxed text-slate-700">
+              <span aria-hidden className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-slate-400" />
+              <div>
+                <p className="font-semibold">{t.closedBanner}</p>
+                <p className="mt-0.5 text-slate-500">
+                  {t.closedSubmit}
+                  {todayHoursLabel ? ` ${t.todayHours}: ${todayHoursLabel}.` : ""}
+                </p>
+              </div>
             </div>
           ) : null}
 
           {/* Session ended notice */}
           {sessionEnded ? (
-            <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm leading-relaxed text-slate-700">
+            <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-3.5 text-sm leading-relaxed text-slate-700">
               {t.sessionEndedNotice}
             </div>
           ) : null}
@@ -405,7 +510,7 @@ export function PublicMenuClient({ data }: { data: PublicMenuData }) {
             <button
               type="button"
               onClick={() => setView("status")}
-              className="mt-4 flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 text-left shadow-sm"
+              className="mt-4 flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left shadow-sm transition-shadow hover:shadow-md"
             >
               <span className="text-sm font-semibold text-slate-900">
                 {t.orderNumber} {orderRef}
@@ -428,6 +533,34 @@ export function PublicMenuClient({ data }: { data: PublicMenuData }) {
         </div>
       </header>
 
+      {/* Sticky category rail */}
+      {view === "menu" && categories.length > 1 ? (
+        <nav className="sticky top-0 z-20 mt-5 border-b border-black/5 bg-white/85 backdrop-blur">
+          <div className="scrollbar-none mx-auto flex w-full max-w-lg gap-2 overflow-x-auto px-4 py-2.5">
+            {categories.map((category) => {
+              const active = activeCategory === category.id;
+              return (
+                <a
+                  key={category.id}
+                  href={`#cat-${category.id}`}
+                  onClick={() => setActiveCategory(category.id)}
+                  aria-current={active ? "true" : undefined}
+                  className={cn(
+                    "inline-flex min-h-9 shrink-0 items-center rounded-full border px-4 text-xs font-semibold transition-colors",
+                    active
+                      ? "border-transparent shadow-sm"
+                      : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900",
+                  )}
+                  style={active ? { backgroundColor: primary, color: onPrimary } : {}}
+                >
+                  {categoryName(category)}
+                </a>
+              );
+            })}
+          </div>
+        </nav>
+      ) : null}
+
       <div className="mx-auto w-full max-w-lg px-4">
         {view === "status" && activeOrder ? (
           <OrderStatusPanel
@@ -441,12 +574,12 @@ export function PublicMenuClient({ data }: { data: PublicMenuData }) {
             onBackToMenu={() => setView("menu")}
           />
         ) : view === "cart" ? (
-          <section className="mt-6">
-            <h2 className="mb-3 text-base font-bold" style={{ color: accent }}>
+          <section className="fade-in-up mt-6">
+            <h2 className="mb-3 text-lg font-extrabold tracking-tight" style={{ color: accent }}>
               {t.cart}
             </h2>
             {cart.length === 0 ? (
-              <p className="rounded-2xl border border-dashed border-slate-300 bg-white/60 p-8 text-center text-sm text-slate-500">
+              <p className="rounded-2xl border border-dashed border-slate-300 bg-white/70 p-8 text-center text-sm text-slate-500">
                 {t.emptyCart}
               </p>
             ) : (
@@ -462,13 +595,18 @@ export function PublicMenuClient({ data }: { data: PublicMenuData }) {
                   return (
                     <li
                       key={line.productId}
-                      className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+                      className="rounded-2xl border border-black/5 bg-white p-4 shadow-sm"
                     >
                       <div className="flex items-center justify-between gap-3">
                         <div className="min-w-0">
                           <p className="truncate text-sm font-semibold text-slate-900">{name}</p>
-                          <p className="text-xs text-slate-500">
+                          <p className="mt-0.5 text-xs text-slate-500">
                             {formatCentsToEuro(product.priceCents, language)}
+                            {line.quantity > 1 ? (
+                              <span className="ml-1.5 font-semibold" style={{ color: accent }}>
+                                · {formatCentsToEuro(product.priceCents * line.quantity, language)}
+                              </span>
+                            ) : null}
                           </p>
                         </div>
                         <div className="flex items-center gap-1.5">
@@ -476,7 +614,7 @@ export function PublicMenuClient({ data }: { data: PublicMenuData }) {
                             type="button"
                             aria-label={`${t.remove} / -`}
                             onClick={() => changeQuantity(line.productId, -1)}
-                            className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-300 text-lg text-slate-700 active:bg-slate-100"
+                            className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-300 text-lg text-slate-700 transition-colors active:bg-slate-100"
                           >
                             −
                           </button>
@@ -487,7 +625,7 @@ export function PublicMenuClient({ data }: { data: PublicMenuData }) {
                             type="button"
                             aria-label="+"
                             onClick={() => changeQuantity(line.productId, 1)}
-                            className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-300 text-lg text-slate-700 active:bg-slate-100"
+                            className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-300 text-lg text-slate-700 transition-colors active:bg-slate-100"
                           >
                             +
                           </button>
@@ -499,7 +637,7 @@ export function PublicMenuClient({ data }: { data: PublicMenuData }) {
                         maxLength={300}
                         onChange={(e) => setItemNote(line.productId, e.target.value)}
                         placeholder={t.itemNotePlaceholder}
-                        className="mt-3 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                        className="mt-3 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-slate-400 focus:outline-none"
                       />
                     </li>
                   );
@@ -518,10 +656,10 @@ export function PublicMenuClient({ data }: { data: PublicMenuData }) {
                     maxLength={500}
                     onChange={(e) => setOrderNote(e.target.value)}
                     placeholder={t.orderNotePlaceholder}
-                    className="min-h-16 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"
+                    className="min-h-16 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus:border-slate-400 focus:outline-none"
                   />
                 </label>
-                <div className="mt-4 flex items-center justify-between rounded-2xl bg-white p-4 shadow-sm">
+                <div className="mt-4 flex items-center justify-between rounded-2xl border border-black/5 bg-white p-4 shadow-sm">
                   <span className="text-sm font-semibold text-slate-700">{t.total}</span>
                   <span className="text-xl font-extrabold" style={{ color: accent }}>
                     {formatCentsToEuro(cartTotal, language)}
@@ -536,15 +674,29 @@ export function PublicMenuClient({ data }: { data: PublicMenuData }) {
                   <p className="mt-3 rounded-xl bg-amber-50 p-3 text-sm text-amber-900">
                     {t.ordersPausedSubmit}
                   </p>
+                ) : closedBySchedule ? (
+                  <p className="mt-3 rounded-xl bg-slate-100 p-3 text-sm text-slate-700">
+                    {t.closedSubmit}
+                  </p>
                 ) : null}
                 <button
                   type="button"
                   onClick={submitOrder}
-                  disabled={submitting || paused}
-                  className="mt-4 min-h-12 w-full rounded-2xl px-4 py-3 text-base font-bold shadow-sm transition-transform active:scale-[0.99] disabled:opacity-50"
+                  disabled={submitting || submitBlocked}
+                  className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-base font-bold shadow-md transition-transform active:scale-[0.99] disabled:opacity-50"
                   style={{ backgroundColor: primary, color: onPrimary }}
                 >
-                  {submitting ? t.submitting : t.submitOrder}
+                  {submitting ? (
+                    <>
+                      <span
+                        aria-hidden
+                        className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent opacity-80"
+                      />
+                      {t.submitting}
+                    </>
+                  ) : (
+                    t.submitOrder
+                  )}
                 </button>
               </>
             ) : null}
@@ -552,7 +704,7 @@ export function PublicMenuClient({ data }: { data: PublicMenuData }) {
             <button
               type="button"
               onClick={() => setView("menu")}
-              className="mt-3 min-h-11 w-full rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700"
+              className="mt-3 min-h-11 w-full rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
             >
               {t.closeCart}
             </button>
@@ -560,130 +712,139 @@ export function PublicMenuClient({ data }: { data: PublicMenuData }) {
         ) : (
           <section className="mt-6">
             {categories.length === 0 ? (
-              <p className="rounded-2xl border border-dashed border-slate-300 bg-white/60 p-8 text-center text-sm text-slate-500">
+              <p className="rounded-2xl border border-dashed border-slate-300 bg-white/70 p-8 text-center text-sm text-slate-500">
                 {t.emptyMenu}
               </p>
             ) : (
-              <>
-                {/* Category quick-nav */}
-                <nav className="scrollbar-none -mx-4 mb-5 flex gap-2 overflow-x-auto px-4 pb-1">
-                  {categories.map((category) => (
-                    <a
-                      key={category.id}
-                      href={`#cat-${category.id}`}
-                      className="min-h-9 shrink-0 rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 shadow-sm"
-                    >
-                      {category.translations[language]?.name ??
-                        category.translations[restaurant.defaultLanguage]?.name ??
-                        "—"}
-                    </a>
-                  ))}
-                </nav>
-
-                {categories.map((category) => (
-                  <div key={category.id} id={`cat-${category.id}`} className="mb-8 scroll-mt-4">
-                    <h2 className="mb-3 text-lg font-extrabold tracking-tight" style={{ color: accent }}>
-                      {category.translations[language]?.name ??
-                        category.translations[restaurant.defaultLanguage]?.name ??
-                        "—"}
-                    </h2>
-                    <ul className="space-y-3">
-                      {category.products.map((product) => {
-                        const { name, description } = pickName(
-                          product.translations,
-                          language,
-                          restaurant.defaultLanguage,
-                        );
-                        return (
-                          <li
-                            key={product.id}
-                            className={cn(
-                              "overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-shadow",
-                              !product.isAvailable && "opacity-60",
-                            )}
-                          >
-                            <div className="flex gap-3">
-                              <div className="min-w-0 flex-1">
-                                <p className="text-[15px] font-bold leading-snug text-slate-900">
-                                  {name}
+              categories.map((category) => (
+                <div key={category.id} id={`cat-${category.id}`} className="mb-8 scroll-mt-16">
+                  <h2
+                    className="mb-3 text-lg font-extrabold tracking-tight"
+                    style={{ color: accent }}
+                  >
+                    {categoryName(category)}
+                  </h2>
+                  <ul className="space-y-3">
+                    {category.products.map((product) => {
+                      const { name, description } = pickName(
+                        product.translations,
+                        language,
+                        restaurant.defaultLanguage,
+                      );
+                      return (
+                        <li
+                          key={product.id}
+                          className={cn(
+                            "overflow-hidden rounded-2xl border border-black/5 bg-white shadow-sm transition-shadow hover:shadow-md",
+                            !product.isAvailable && "opacity-60",
+                          )}
+                        >
+                          <div className="flex items-stretch">
+                            <div className="min-w-0 flex-1 p-4">
+                              <p className="text-[15px] font-bold leading-snug text-slate-900">
+                                {name}
+                              </p>
+                              {description ? (
+                                <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-slate-500">
+                                  {description}
                                 </p>
-                                {description ? (
-                                  <p className="mt-1 text-xs leading-relaxed text-slate-500">
-                                    {description}
-                                  </p>
-                                ) : null}
-                                {product.allergenCodes.length > 0 ? (
-                                  <p className="mt-2 text-[11px] leading-relaxed text-slate-400">
-                                    {t.allergens}:{" "}
-                                    {product.allergenCodes
-                                      .map((code) => getAllergenName(code, language))
-                                      .join(", ")}
-                                  </p>
-                                ) : null}
-                                <div className="mt-3 flex items-center justify-between gap-2">
-                                  <span className="text-base font-extrabold" style={{ color: accent }}>
-                                    {formatCentsToEuro(product.priceCents, language)}
-                                  </span>
-                                  {product.isAvailable ? (
-                                    <button
-                                      type="button"
-                                      onClick={() => addToCart(product.id)}
-                                      className="min-h-10 rounded-xl px-4 py-2 text-sm font-bold shadow-sm transition-transform active:scale-95"
-                                      style={{ backgroundColor: primary, color: onPrimary }}
+                              ) : null}
+                              {product.allergenCodes.length > 0 ? (
+                                <p className="mt-2 flex flex-wrap items-center gap-1">
+                                  {product.allergenCodes.map((code) => (
+                                    <span
+                                      key={code}
+                                      className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500"
                                     >
-                                      {t.addToCart}
-                                    </button>
-                                  ) : (
-                                    <span className="inline-block rounded-xl bg-slate-100 px-3.5 py-2 text-xs font-medium text-slate-500">
-                                      {t.unavailable}
+                                      {getAllergenName(code, language)}
                                     </span>
-                                  )}
-                                </div>
+                                  ))}
+                                </p>
+                              ) : null}
+                              <div className="mt-3 flex items-center justify-between gap-2">
+                                <span
+                                  className="text-base font-extrabold"
+                                  style={{ color: accent }}
+                                >
+                                  {formatCentsToEuro(product.priceCents, language)}
+                                </span>
+                                {product.isAvailable ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => addToCart(product.id)}
+                                    className="min-h-10 rounded-full px-4 py-2 text-sm font-bold shadow-sm transition-transform active:scale-95"
+                                    style={{ backgroundColor: primary, color: onPrimary }}
+                                  >
+                                    + {t.addToCart}
+                                  </button>
+                                ) : (
+                                  <span className="inline-block rounded-full bg-slate-100 px-3.5 py-2 text-xs font-medium text-slate-500">
+                                    {t.unavailable}
+                                  </span>
+                                )}
                               </div>
-                              {product.imageUrl ? (
-                                // eslint-disable-next-line @next/next/no-img-element
+                            </div>
+                            {product.imageUrl ? (
+                              <div className="relative w-28 shrink-0 sm:w-32">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
                                 <img
                                   src={product.imageUrl}
                                   alt=""
                                   loading="lazy"
-                                  className="h-24 w-24 shrink-0 rounded-xl object-cover"
+                                  className={cn(
+                                    "absolute inset-0 h-full w-full object-cover",
+                                    !product.isAvailable && "grayscale",
+                                  )}
                                 />
-                              ) : null}
-                            </div>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  </div>
-                ))}
-              </>
+                              </div>
+                            ) : (
+                              <div
+                                aria-hidden
+                                className="relative flex w-20 shrink-0 items-center justify-center sm:w-24"
+                                style={{
+                                  background: `linear-gradient(150deg, ${primary}14, ${secondary}2e)`,
+                                }}
+                              >
+                                <span
+                                  className="text-2xl font-extrabold opacity-30"
+                                  style={{ color: accent }}
+                                >
+                                  {name.charAt(0).toUpperCase()}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              ))
             )}
-            <div className="mb-4 mt-2 flex items-start gap-2 rounded-2xl border border-amber-100 bg-amber-50 p-3.5">
-              <span aria-hidden className="text-base leading-none">
-                ⚠️
-              </span>
+            <div className="mb-4 mt-2 flex items-start gap-2.5 rounded-2xl border border-amber-100 bg-amber-50 p-3.5">
+              <span aria-hidden className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-amber-400" />
               <p className="text-xs leading-relaxed text-amber-900">{t.allergenDisclaimer}</p>
             </div>
           </section>
         )}
       </div>
 
-      {/* Sticky cart bar (with iOS safe-area padding) */}
+      {/* Floating cart bar (with iOS safe-area padding) */}
       {view === "menu" && cartCount > 0 ? (
-        <div className="pb-safe fixed inset-x-0 bottom-0 z-10 border-t border-slate-200 bg-white/95 backdrop-blur">
-          <div className="mx-auto flex w-full max-w-lg items-center justify-between gap-3 px-4 py-3">
-            <div>
-              <p className="text-xs text-slate-500">
+        <div className="pb-safe fixed inset-x-0 bottom-0 z-30 px-4">
+          <div className="fade-in-up mx-auto mb-3 flex w-full max-w-lg items-center justify-between gap-3 rounded-2xl bg-slate-900/95 px-4 py-3 shadow-2xl shadow-black/25 backdrop-blur">
+            <div className="min-w-0">
+              <p className="truncate text-xs text-slate-400">
                 {cartCount} · {tableDisplay}
               </p>
-              <p className="text-lg font-extrabold text-slate-900">
+              <p className="text-lg font-extrabold text-white">
                 {formatCentsToEuro(cartTotal, language)}
               </p>
             </div>
             <button
               type="button"
               onClick={() => setView("cart")}
-              className="min-h-12 rounded-2xl px-6 py-2.5 text-sm font-bold shadow-sm transition-transform active:scale-[0.98]"
+              className="min-h-12 shrink-0 rounded-xl px-5 py-2.5 text-sm font-bold shadow-sm transition-transform active:scale-[0.98]"
               style={{ backgroundColor: primary, color: onPrimary }}
             >
               {t.viewCart} ({cartCount})
@@ -694,6 +855,9 @@ export function PublicMenuClient({ data }: { data: PublicMenuData }) {
     </main>
   );
 }
+
+/** Kitchen flow steps shown on the status panel once an order is confirmed. */
+const PROGRESS_STATUSES: OrderStatus[] = ["new", "preparing", "ready", "delivered"];
 
 function OrderStatusPanel({
   t,
@@ -716,11 +880,12 @@ function OrderStatusPanel({
 }) {
   const isPending = order.status === "pending_confirmation";
   const isRejected = order.status === "rejected" || order.status === "cancelled";
+  const progressIndex = PROGRESS_STATUSES.indexOf(order.status);
 
   return (
     <section
       className={cn(
-        "mt-8 rounded-3xl border p-8 text-center shadow-sm",
+        "fade-in-up mt-8 rounded-3xl border p-8 text-center shadow-sm",
         isPending && "border-violet-200 bg-violet-50",
         isRejected && "border-red-200 bg-red-50",
         !isPending && !isRejected && "border-emerald-200 bg-emerald-50",
@@ -728,7 +893,7 @@ function OrderStatusPanel({
     >
       <div
         className={cn(
-          "mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full text-2xl text-white",
+          "mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full text-2xl text-white shadow-sm",
           isPending && "animate-pulse bg-violet-500",
           isRejected && "bg-red-500",
           !isPending && !isRejected && "bg-emerald-600",
@@ -758,7 +923,26 @@ function OrderStatusPanel({
         {isPending ? t.pendingBody : isRejected ? t.rejectedBody : t.confirmedBody}
       </p>
 
-      <div className="mx-auto mt-5 max-w-xs space-y-1.5 rounded-2xl bg-white/80 p-4 text-sm">
+      {/* Progress through the kitchen flow (confirmed orders only). */}
+      {progressIndex >= 0 ? (
+        <div
+          className="mx-auto mt-5 flex max-w-xs items-center gap-1.5"
+          role="img"
+          aria-label={statusLabel(order.status, t)}
+        >
+          {PROGRESS_STATUSES.map((status, index) => (
+            <span
+              key={status}
+              className={cn(
+                "h-1.5 flex-1 rounded-full transition-colors",
+                index <= progressIndex ? "bg-emerald-600" : "bg-emerald-200",
+              )}
+            />
+          ))}
+        </div>
+      ) : null}
+
+      <div className="mx-auto mt-5 max-w-xs space-y-1.5 rounded-2xl bg-white/85 p-4 text-sm shadow-sm">
         <p className="font-bold text-slate-900">{tableDisplay}</p>
         <p className="font-semibold text-slate-700">
           {t.orderNumber} {orderRef}
@@ -780,7 +964,7 @@ function OrderStatusPanel({
       <button
         type="button"
         onClick={onBackToMenu}
-        className="mt-6 min-h-11 rounded-2xl px-5 py-2.5 text-sm font-bold shadow-sm"
+        className="mt-6 min-h-11 rounded-2xl px-5 py-2.5 text-sm font-bold shadow-sm transition-transform active:scale-[0.98]"
         style={{ backgroundColor: primary, color: onPrimary }}
       >
         {isRejected || isPending ? t.backToMenu : t.newOrder}

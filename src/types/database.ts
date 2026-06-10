@@ -48,6 +48,22 @@ export interface RestaurantRow {
   enabled_languages: Language[];
   accepts_orders: boolean;
   paused_message: string | null;
+  /** IANA timezone used to evaluate opening hours (default Europe/Lisbon). */
+  timezone: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Weekday convention: 0 = Sunday ... 6 = Saturday (matches Date#getDay). */
+export interface RestaurantOpeningHourRow {
+  id: string;
+  restaurant_id: string;
+  weekday: number;
+  is_closed: boolean;
+  /** "HH:MM:SS" (Postgres time). Null only when is_closed. */
+  opens_at: string | null;
+  closes_at: string | null;
+  notes: string | null;
   created_at: string;
   updated_at: string;
 }

@@ -3,14 +3,14 @@ import { getAppLanguage } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = { title: "Aviso sobre Alérgenos / Allergen Notice" };
+export const metadata = { title: "Aviso sobre Alergénios / Allergen Notice" };
 
 export default async function AllergenDisclaimerPage() {
   const lang = await getAppLanguage();
 
   if (lang === "pt") {
     return (
-      <LegalPage title="Aviso sobre Alérgenos e Traduções (rascunho)" lang={lang}>
+      <LegalPage title="Aviso sobre Alergénios e Traduções (rascunho)" lang={lang}>
         <DisclaimerPt />
       </LegalPage>
     );
@@ -26,16 +26,16 @@ function DisclaimerPt() {
   return (
     <>
       <section>
-        <h2>Informação de alérgenos</h2>
+        <h2>Informação de alergénios</h2>
         <p>
-          Os menus nesta plataforma podem assinalar os 14 alérgenos de declaração obrigatória na
+          Os menus nesta plataforma podem assinalar os 14 alergénios de declaração obrigatória na
           União Europeia (Regulamento (UE) n.º 1169/2011): glúten, crustáceos, ovos, peixe,
           amendoins, soja, leite, frutos de casca rija, aipo, mostarda, sésamo, sulfitos, tremoço
           e moluscos.
         </p>
         <ul>
           <li>
-            A informação de alérgenos é introduzida e validada por cada restaurante. A plataforma
+            A informação de alergénios é introduzida e validada por cada restaurante. A plataforma
             apenas a apresenta.
           </li>
           <li>

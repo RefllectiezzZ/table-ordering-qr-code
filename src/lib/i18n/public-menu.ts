@@ -41,6 +41,12 @@ export interface PublicMenuStrings {
   // Pause / availability
   ordersPausedBanner: string;
   ordersPausedSubmit: string;
+  // Opening hours
+  openNow: string;
+  closedNow: string;
+  todayHours: string;
+  closedBanner: string;
+  closedSubmit: string;
   // First-order confirmation flow
   pendingTitle: string;
   pendingBody: string;
@@ -67,7 +73,7 @@ export const PUBLIC_MENU_STRINGS: Record<Language, PublicMenuStrings> = {
     cart: "Carrinho",
     addToCart: "Adicionar",
     unavailable: "Indisponível",
-    allergens: "Alérgenos",
+    allergens: "Alergénios",
     quantity: "Quantidade",
     itemNotePlaceholder: "Nota para este item (opcional)",
     orderNotePlaceholder: "Nota para o restaurante (opcional)",
@@ -95,6 +101,12 @@ export const PUBLIC_MENU_STRINGS: Record<Language, PublicMenuStrings> = {
     unavailableBody: "Este restaurante não está disponível de momento.",
     ordersPausedBanner: "O restaurante não está a aceitar pedidos neste momento.",
     ordersPausedSubmit: "Os pedidos estão em pausa. Pode continuar a ver o menu.",
+    openNow: "Aberto",
+    closedNow: "Fechado",
+    todayHours: "Hoje",
+    closedBanner: "O restaurante está fora do horário de funcionamento.",
+    closedSubmit:
+      "Fora do horário de funcionamento. Pode continuar a ver o menu, mas não é possível enviar pedidos.",
     pendingTitle: "Pedido recebido",
     pendingBody: "A equipa vai confirmar a mesa.",
     pendingHint: "Pode manter esta página aberta; o estado atualiza automaticamente.",
@@ -147,6 +159,12 @@ export const PUBLIC_MENU_STRINGS: Record<Language, PublicMenuStrings> = {
     unavailableBody: "This restaurant is currently unavailable.",
     ordersPausedBanner: "The restaurant is not taking orders right now.",
     ordersPausedSubmit: "Ordering is paused. You can keep browsing the menu.",
+    openNow: "Open",
+    closedNow: "Closed",
+    todayHours: "Today",
+    closedBanner: "The restaurant is outside opening hours.",
+    closedSubmit:
+      "Outside opening hours. You can keep browsing the menu, but orders cannot be sent.",
     pendingTitle: "Order received",
     pendingBody: "The staff will confirm your table.",
     pendingHint: "You can keep this page open; the status updates automatically.",
@@ -199,6 +217,12 @@ export const PUBLIC_MENU_STRINGS: Record<Language, PublicMenuStrings> = {
     unavailableBody: "Este restaurante no está disponible en este momento.",
     ordersPausedBanner: "El restaurante no está aceptando pedidos en este momento.",
     ordersPausedSubmit: "Los pedidos están en pausa. Puede seguir viendo el menú.",
+    openNow: "Abierto",
+    closedNow: "Cerrado",
+    todayHours: "Hoy",
+    closedBanner: "El restaurante está fuera del horario de apertura.",
+    closedSubmit:
+      "Fuera del horario de apertura. Puede seguir viendo el menú, pero no es posible enviar pedidos.",
     pendingTitle: "Pedido recibido",
     pendingBody: "El personal confirmará la mesa.",
     pendingHint: "Puede mantener esta página abierta; el estado se actualiza automáticamente.",
@@ -251,6 +275,12 @@ export const PUBLIC_MENU_STRINGS: Record<Language, PublicMenuStrings> = {
     unavailableBody: "Ce restaurant n'est pas disponible pour le moment.",
     ordersPausedBanner: "Le restaurant n'accepte pas de commandes pour le moment.",
     ordersPausedSubmit: "Les commandes sont en pause. Vous pouvez continuer à consulter le menu.",
+    openNow: "Ouvert",
+    closedNow: "Fermé",
+    todayHours: "Aujourd'hui",
+    closedBanner: "Le restaurant est en dehors des horaires d'ouverture.",
+    closedSubmit:
+      "En dehors des horaires d'ouverture. Vous pouvez consulter le menu, mais les commandes ne peuvent pas être envoyées.",
     pendingTitle: "Commande reçue",
     pendingBody: "Le personnel va confirmer la table.",
     pendingHint: "Vous pouvez garder cette page ouverte ; le statut se met à jour automatiquement.",

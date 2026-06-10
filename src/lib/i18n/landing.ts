@@ -3,15 +3,15 @@ import type { AppLanguage } from "@/lib/i18n/app";
 /** Landing page copy, written to read naturally in both languages. */
 
 export interface LandingStrings {
-  navDemo: string;
   navLogin: string;
+  navDashboard: string;
   heroBadge: string;
   heroTitle1: string;
   heroTitle2: string;
   heroSubtitle: string;
   ctaLogin: string;
-  ctaDemo: string;
-  demoNote: string;
+  ctaDashboard: string;
+  ctaHowItWorks: string;
   howTitle: string;
   howSubtitle: string;
   howSteps: { title: string; description: string }[];
@@ -32,16 +32,16 @@ export interface LandingStrings {
 
 export const LANDING_STRINGS: Record<AppLanguage, LandingStrings> = {
   pt: {
-    navDemo: "Menu de demonstração",
     navLogin: "Entrar",
-    heroBadge: "Pedidos à mesa por QR code",
-    heroTitle1: "O seu menu em cada mesa.",
-    heroTitle2: "Os pedidos direto na cozinha.",
+    navDashboard: "Ir para painel",
+    heroBadge: "Pedidos à mesa por QR",
+    heroTitle1: "Menu QR e pedidos à mesa",
+    heroTitle2: "para restaurantes.",
     heroSubtitle:
-      "Menu QR, pedidos à mesa e painel de cozinha para restaurantes. Os clientes leem o QR code, escolhem no menu com a sua marca e pedem sem esperar. Sem aplicações, sem hardware, sem pagamentos online para configurar.",
+      "Os clientes leem o QR, escolhem no menu e a equipa confirma o primeiro pedido antes de seguir para a cozinha. Sem aplicações, sem hardware e sem pagamentos online para configurar.",
     ctaLogin: "Entrar",
-    ctaDemo: "Ver demonstração",
-    demoNote: "A demonstração usa os dados de exemplo locais (ver README).",
+    ctaDashboard: "Ir para painel",
+    ctaHowItWorks: "Ver como funciona",
     howTitle: "Como funciona",
     howSubtitle: "Três passos entre a mesa e a cozinha.",
     howSteps: [
@@ -102,14 +102,14 @@ export const LANDING_STRINGS: Record<AppLanguage, LandingStrings> = {
           "Exporte o menu num único CSV multi-idioma, traduza fora da aplicação, pré-visualize e importe com confirmação.",
       },
       {
-        title: "Alérgenos da UE",
+        title: "Alergénios da UE",
         description:
-          "Os produtos usam os 14 códigos de alérgenos da UE, mostrados no idioma do cliente com aviso para confirmar com a equipa.",
+          "Os produtos usam os 14 códigos de alergénios da UE, mostrados no idioma do cliente com aviso para confirmar com a equipa.",
       },
       {
-        title: "Pausar pedidos",
+        title: "Horário e pausas",
         description:
-          "Cozinha cheia ou fim de serviço? Pause os pedidos num clique. O menu continua visível para os clientes.",
+          "Defina o horário de funcionamento e pause pedidos num clique. O menu continua visível, mas fora de horas ninguém envia pedidos.",
       },
     ],
     mockupTagline: "Menu público, carrinho e estado do pedido num só ecrã.",
@@ -131,25 +131,25 @@ export const LANDING_STRINGS: Record<AppLanguage, LandingStrings> = {
           "Os clientes não criam conta nem dão dados pessoais. Só a equipa do restaurante tem acesso autenticado.",
       },
     ],
-    finalCtaTitle: "Pronto para experimentar?",
+    finalCtaTitle: "Pronto para começar?",
     finalCtaSubtitle:
-      "Entre com a conta do seu restaurante ou explore o menu de demonstração.",
+      "Entre com a conta do seu restaurante e comece a receber pedidos das mesas.",
     footerTagline: "TableOrder. Versão MVP, sem pagamentos online.",
     footerTerms: "Termos",
     footerPrivacy: "Privacidade",
-    footerAllergens: "Alérgenos",
+    footerAllergens: "Alergénios",
   },
   en: {
-    navDemo: "Demo menu",
     navLogin: "Log in",
+    navDashboard: "Go to dashboard",
     heroBadge: "QR table ordering",
-    heroTitle1: "Your menu on every table.",
-    heroTitle2: "Orders straight to the kitchen.",
+    heroTitle1: "QR menus and table ordering",
+    heroTitle2: "for restaurants.",
     heroSubtitle:
-      "QR menus, table ordering and a kitchen board for restaurants. Customers scan the QR code, browse your branded menu and order without waiting. No apps, no hardware, no online payments to set up.",
+      "Customers scan the QR, choose from the menu and your team confirms the first order before it reaches the kitchen. No apps, no hardware, no online payments to set up.",
     ctaLogin: "Log in",
-    ctaDemo: "See the demo",
-    demoNote: "The demo uses the local sample data (see README).",
+    ctaDashboard: "Go to dashboard",
+    ctaHowItWorks: "See how it works",
     howTitle: "How it works",
     howSubtitle: "Three steps between the table and the kitchen.",
     howSteps: [
@@ -215,9 +215,9 @@ export const LANDING_STRINGS: Record<AppLanguage, LandingStrings> = {
           "Products carry the 14 EU allergen codes, shown in the customer's language with a clear staff-confirmation notice.",
       },
       {
-        title: "Pause ordering",
+        title: "Opening hours and pauses",
         description:
-          "Kitchen slammed or closing time? Pause ordering in one click. The menu stays visible to customers.",
+          "Set your operating hours and pause ordering in one click. The menu stays visible, but nobody can order outside hours.",
       },
     ],
     mockupTagline: "Public menu, cart and order status in one screen.",
@@ -239,8 +239,9 @@ export const LANDING_STRINGS: Record<AppLanguage, LandingStrings> = {
           "Customers never create accounts or hand over personal data. Only restaurant staff have authenticated access.",
       },
     ],
-    finalCtaTitle: "Ready to try it?",
-    finalCtaSubtitle: "Log in with your restaurant account or explore the demo menu.",
+    finalCtaTitle: "Ready to get started?",
+    finalCtaSubtitle:
+      "Log in with your restaurant account and start taking orders from your tables.",
     footerTagline: "TableOrder. MVP release, no online payments.",
     footerTerms: "Terms",
     footerPrivacy: "Privacy",

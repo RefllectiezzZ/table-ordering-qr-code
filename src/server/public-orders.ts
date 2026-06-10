@@ -1,8 +1,10 @@
 import "server-only";
 
+import { evaluateOpeningHours } from "@/lib/opening-hours";
 import { buildOrderItems, type OrderableProduct } from "@/lib/order-items";
 import { OPEN_ORDER_STATUSES, orderShortCode } from "@/lib/orders";
 import { createServiceRoleSupabaseClient } from "@/lib/supabase/service-role";
+import { fetchOpeningHours } from "@/server/opening-hours";
 import {
   issueSessionTokenForOrder,
   validateSessionToken,
@@ -32,6 +34,7 @@ export type CreatePublicOrderResult =
         | "table_inactive"
         | "restaurant_unavailable"
         | "orders_paused"
+        | "restaurant_closed"
         | "unknown_product"
         | "unavailable_product"
         | "invalid_quantity"
@@ -54,6 +57,9 @@ interface InsertedOrderRow {
  *  - restaurant and table are derived ONLY from the token (never from input),
  *  - suspended/draft restaurants and inactive tables are rejected,
  *  - paused restaurants (accepts_orders = false) reject new orders,
+ *  - orders outside the configured opening hours are rejected server-side
+ *    (restaurant_closed), evaluated in the restaurant's timezone; a
+ *    restaurant without configured hours keeps accepting orders,
  *  - products must belong to the token's restaurant and be active+available,
  *  - unit prices are read from the database, never from the client,
  *  - (restaurant_id, client_order_token) is unique, so retries are idempotent,
@@ -78,13 +84,14 @@ export async function createPublicOrder(
 
   const { data: restaurant } = await supabase
     .from("restaurants")
-    .select("id, status, accepts_orders, paused_message")
+    .select("id, status, accepts_orders, paused_message, timezone")
     .eq("id", table.restaurant_id)
     .maybeSingle<{
       id: string;
       status: string;
       accepts_orders: boolean;
       paused_message: string | null;
+      timezone: string;
     }>();
 
   if (!restaurant || restaurant.status !== "active") {
@@ -97,6 +104,15 @@ export async function createPublicOrder(
       code: "orders_paused",
       message: restaurant.paused_message,
     };
+  }
+
+  // Opening hours: evaluated server-side in the restaurant's timezone. The
+  // client's disabled button is cosmetic; this check is the real gate. A
+  // restaurant with no configured schedule keeps accepting orders.
+  const openingHours = await fetchOpeningHours(supabase, restaurant.id);
+  const opening = evaluateOpeningHours(openingHours, new Date(), restaurant.timezone);
+  if (opening.configured && !opening.isOpenNow) {
+    return { ok: false, status: 409, code: "restaurant_closed" };
   }
 
   // Idempotency: if this client token was already used for this restaurant,

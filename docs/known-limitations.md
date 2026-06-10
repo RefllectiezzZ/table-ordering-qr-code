@@ -30,7 +30,20 @@ flow and carry no security risk.
   end-of-day/cron close is a follow-up.
 - The orders **"Hoje" quick filter** uses the Europe/Lisbon day start (the
   pilot market); restaurants in other timezones should use the custom range
-  filter until per-restaurant timezones exist.
+  filter. A `restaurants.timezone` column now exists (used by opening hours);
+  wiring it into this filter is a follow-up.
+- **Opening hours support one interval per weekday.** Split lunch/dinner
+  schedules (e.g. 12:00–15:00 + 19:00–23:00) are not supported yet — the
+  closest workaround is one continuous interval plus the per-day note field.
+  Overnight intervals ARE supported: a closing time earlier than the opening
+  time (e.g. 18:00–02:00) spills past midnight into the next day.
+- **Opening hours are evaluated in `restaurants.timezone`** (default
+  `Europe/Lisbon`, set per restaurant in the database; there is no UI to edit
+  the timezone yet). Validation is server-side; client clocks are never
+  trusted. A restaurant with no configured schedule keeps accepting orders and
+  only the dashboard/admin show a "not configured" notice.
+- **Platform admins see opening hours read-only** in the restaurant detail
+  page; the schedule itself is owner-managed from the restaurant settings.
 - **Order numbers** are assigned by a per-restaurant counter inside a
   `BEFORE INSERT` trigger (row-locked upsert, race-safe). Orders created
   before this migration were backfilled in `created_at` order; their numbers
