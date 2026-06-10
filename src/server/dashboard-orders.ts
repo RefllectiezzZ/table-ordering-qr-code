@@ -1,6 +1,11 @@
 import "server-only";
 
 import { orderShortCode } from "@/lib/orders";
+import {
+  statusesForView,
+  viewTimeFloor,
+  type OrdersFilter,
+} from "@/lib/orders-filters";
 import type { createServerSupabaseClient } from "@/lib/supabase/server";
 import type { Language, OrderStatus } from "@/types/database";
 
@@ -18,11 +23,15 @@ export interface DashboardOrderItem {
 export interface DashboardOrder {
   id: string;
   shortCode: string;
+  orderNumber: number | null;
   status: OrderStatus;
   customerNote: string | null;
   createdAt: string;
   tableNumber: string;
   tableLabel: string | null;
+  tableSessionId: string | null;
+  sessionOpenedAt: string | null;
+  sessionStatus: string | null;
   totalCents: number;
   items: DashboardOrderItem[];
 }
@@ -30,9 +39,12 @@ export interface DashboardOrder {
 interface OrderQueryRow {
   id: string;
   status: OrderStatus;
+  order_number: number | null;
   customer_note: string | null;
   created_at: string;
+  table_session_id: string | null;
   restaurant_tables: { table_number: string; label: string | null } | null;
+  table_sessions: { opened_at: string; status: string } | null;
   order_items: {
     id: string;
     product_id: string;
@@ -46,29 +58,41 @@ interface OrderQueryRow {
 }
 
 /**
- * Loads the kitchen order board for one restaurant: every open order plus
- * everything from the last 24 hours. Runs on the user-scoped client, so RLS
- * enforces tenant isolation on top of the explicit restaurant_id filter.
+ * Loads the order board for one restaurant, applying the (already validated)
+ * date/status filter. Runs on the user-scoped client, so RLS enforces tenant
+ * isolation on top of the explicit restaurant_id filter.
  */
 export async function fetchDashboardOrders(
   supabase: SupabaseServerClient,
   restaurantId: string,
   defaultLanguage: Language,
+  filter: OrdersFilter,
 ): Promise<DashboardOrder[]> {
-  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-
-  const { data } = await supabase
+  let query = supabase
     .from("orders")
     .select(
-      `id, status, customer_note, created_at,
+      `id, status, order_number, customer_note, created_at, table_session_id,
        restaurant_tables(table_number, label),
+       table_sessions(opened_at, status),
        order_items(id, product_id, quantity, unit_price_cents, item_note,
          menu_products(menu_product_translations(language, name)))`,
     )
-    .eq("restaurant_id", restaurantId)
-    .or(`status.in.(new,preparing,ready),created_at.gte.${since}`)
-    .order("created_at", { ascending: false })
-    .limit(200);
+    .eq("restaurant_id", restaurantId);
+
+  const statuses = statusesForView(filter.view);
+  if (statuses) {
+    query = query.in("status", statuses);
+  }
+
+  if (filter.view === "custom") {
+    if (filter.fromIso) query = query.gte("created_at", filter.fromIso);
+    if (filter.toIso) query = query.lte("created_at", filter.toIso);
+  } else {
+    const floor = viewTimeFloor(filter.view);
+    if (floor) query = query.gte("created_at", floor);
+  }
+
+  const { data } = await query.order("created_at", { ascending: false }).limit(200);
 
   return ((data ?? []) as unknown as OrderQueryRow[]).map((order) => {
     const items: DashboardOrderItem[] = order.order_items.map((item) => {
@@ -90,13 +114,123 @@ export async function fetchDashboardOrders(
     return {
       id: order.id,
       shortCode: orderShortCode(order.id),
+      orderNumber: order.order_number,
       status: order.status,
       customerNote: order.customer_note,
       createdAt: order.created_at,
       tableNumber: order.restaurant_tables?.table_number ?? "?",
       tableLabel: order.restaurant_tables?.label ?? null,
+      tableSessionId: order.table_session_id,
+      sessionOpenedAt: order.table_sessions?.opened_at ?? null,
+      sessionStatus: order.table_sessions?.status ?? null,
       totalCents: items.reduce((sum, item) => sum + item.quantity * item.unitPriceCents, 0),
       items,
     };
   });
+}
+
+export interface TableFloorEntry {
+  tableId: string;
+  openSessionId: string | null;
+  sessionOpenedAt: string | null;
+  openOrderCount: number;
+  pendingCount: number;
+  sessionOrderCount: number;
+  latestOrderAt: string | null;
+}
+
+/**
+ * Aggregates per-table operational state for the floor view: open session,
+ * open/pending order counts and the latest order time. All queries are
+ * restaurant-scoped and RLS-protected.
+ */
+export async function fetchTableFloorState(
+  supabase: SupabaseServerClient,
+  restaurantId: string,
+): Promise<Map<string, TableFloorEntry>> {
+  const [{ data: sessionsData }, { data: ordersData }] = await Promise.all([
+    supabase
+      .from("table_sessions")
+      .select("id, table_id, opened_at")
+      .eq("restaurant_id", restaurantId)
+      .eq("status", "open"),
+    supabase
+      .from("orders")
+      .select("id, table_id, table_session_id, status, created_at")
+      .eq("restaurant_id", restaurantId)
+      .in("status", ["pending_confirmation", "new", "preparing", "ready"])
+      .order("created_at", { ascending: false })
+      .limit(500),
+  ]);
+
+  const sessions = (sessionsData ?? []) as { id: string; table_id: string; opened_at: string }[];
+  const orders = (ordersData ?? []) as {
+    id: string;
+    table_id: string;
+    table_session_id: string | null;
+    status: OrderStatus;
+    created_at: string;
+  }[];
+
+  const byTable = new Map<string, TableFloorEntry>();
+  const entryFor = (tableId: string): TableFloorEntry => {
+    let entry = byTable.get(tableId);
+    if (!entry) {
+      entry = {
+        tableId,
+        openSessionId: null,
+        sessionOpenedAt: null,
+        openOrderCount: 0,
+        pendingCount: 0,
+        sessionOrderCount: 0,
+        latestOrderAt: null,
+      };
+      byTable.set(tableId, entry);
+    }
+    return entry;
+  };
+
+  for (const session of sessions) {
+    const entry = entryFor(session.table_id);
+    entry.openSessionId = session.id;
+    entry.sessionOpenedAt = session.opened_at;
+  }
+
+  for (const order of orders) {
+    const entry = entryFor(order.table_id);
+    if (order.status === "pending_confirmation") {
+      entry.pendingCount += 1;
+    } else {
+      entry.openOrderCount += 1;
+    }
+    if (!entry.latestOrderAt || order.created_at > entry.latestOrderAt) {
+      entry.latestOrderAt = order.created_at;
+    }
+  }
+
+  // Total orders attached to each CURRENT open session (any status), counted
+  // separately so totals never mix in past sessions.
+  const openSessionIds = sessions.map((s) => s.id);
+  if (openSessionIds.length > 0) {
+    const { data: sessionOrdersData } = await supabase
+      .from("orders")
+      .select("id, table_id, table_session_id, created_at")
+      .eq("restaurant_id", restaurantId)
+      .in("table_session_id", openSessionIds);
+
+    for (const order of (sessionOrdersData ?? []) as {
+      id: string;
+      table_id: string;
+      table_session_id: string;
+      created_at: string;
+    }[]) {
+      const entry = entryFor(order.table_id);
+      entry.sessionOrderCount += 1;
+      if (!entry.latestOrderAt || order.created_at > entry.latestOrderAt) {
+        entry.latestOrderAt = order.created_at;
+      }
+    }
+  }
+
+  return byTable;
 }
