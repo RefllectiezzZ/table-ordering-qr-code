@@ -75,16 +75,30 @@ anything that touches data access.
 - Printed QR codes are fixed; abuse protection is operational, not
   cryptographic rotation. Each restaurant chooses via
   `restaurants.require_order_confirmation` (default **true**):
-  - **Confirmation ON** (safer for printed QR): an order without a valid
-    browser authorization starts as `pending_confirmation` and is **never**
-    shown as kitchen-ready; staff confirm/reject from the Staff view
+
+  ### Manual mode (confirmation ON — safer)
+
+  - An order without a valid browser authorization starts as
+    `pending_confirmation` and is **never** shown as kitchen-ready.
+  - Staff confirm/reject from the Staff view
     (`POST /api/restaurant/orders/[id]/confirm|reject`); confirmation
     creates/joins the table's open `table_sessions` row (race-safe partial
     unique index: one open session per table).
-  - **Confirmation OFF** (smoother, less protected): orders go straight to
-    `new` attached to the table's open session (`ensureOpenSession` creates
-    one when needed); no browser authorization is required, but saved-QR
-    abuse is easier because any device can order without staff approval.
+  - `/restaurant/tables` exposes **Open session** / **Close session** as the
+    primary operational flow.
+
+  ### Automatic mode (confirmation OFF — faster)
+
+  - Orders go straight to `new` attached to the table's open session
+    (`ensureOpenSession` creates one when needed); no browser authorization
+    is required.
+  - Table sessions still exist internally for grouping orders by visit, but
+    staff do **not** need to manually open tables — **Open session** is
+    hidden and a "Modo automático" badge explains the behavior.
+  - **Close session** remains available as optional cleanup when customers
+    leave.
+  - Saved-QR abuse is easier because any device can order without staff
+    approval.
 - Browser authorizations (`table_session_access_tokens`):
   - only the SHA-256 hash is stored; the raw token is delivered exactly once
     through `GET /api/public/orders/status`, gated by the order's own
@@ -146,8 +160,21 @@ anything that touches data access.
 - No unsafe static caching of private or tenant-scoped pages: every dashboard
   page, the public token page and all API routes are `force-dynamic`; polling
   responses set `Cache-Control: no-store`.
+- **Public menu resolver** (`resolvePublicMenu` in `src/server/public-menu.ts`)
+  is cached per QR token for **30 seconds** via `unstable_cache`. This covers
+  branding, categories, products, translations and opening/pause state.
+  Changes may take up to 30 seconds to appear on `/t/[token]`. Never cached:
+  `/restaurant/**`, `/admin/**`, auth pages, `/api/restaurant/orders`,
+  `POST /api/public/orders`, or per-customer order status polls.
 - The auth proxy applies the cache headers provided by `@supabase/ssr` whenever
   auth cookies are written, so responses carrying session tokens are never CDN-cached.
+
+## Order retention (platform admin)
+
+- Old terminal orders (`delivered`, `cancelled`, `rejected`) may be deleted
+  manually by platform admins at `/admin/maintenance` (default retention: 30
+  days, minimum 30). Non-terminal orders are never deleted.
+- Audit logs are always kept. Automatic scheduled cleanup is future work.
 
 ## Tokens
 

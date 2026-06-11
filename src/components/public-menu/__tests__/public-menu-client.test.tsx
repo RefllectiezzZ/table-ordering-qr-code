@@ -168,5 +168,10 @@ describe("PublicMenuClient (SSR smoke)", () => {
       /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i,
     );
   });
+
+  it("does not render dynamic ISO timestamps in SSR markup", () => {
+    const html = renderToString(<PublicMenuClient data={menuData()} />);
+    expect(html).not.toMatch(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
+  });
 });
 

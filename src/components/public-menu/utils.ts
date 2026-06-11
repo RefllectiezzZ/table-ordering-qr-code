@@ -18,6 +18,8 @@ export interface ActiveOrder {
 export type PublicMenuView = "menu" | "cart" | "status";
 
 export const POLL_INTERVAL_MS = 5000;
+/** Slower poll when the tab is hidden — resumes immediately on visibility. */
+export const POLL_INTERVAL_HIDDEN_MS = 15000;
 export const POLLABLE_STATUSES: OrderStatus[] = [
   "pending_confirmation",
   "new",

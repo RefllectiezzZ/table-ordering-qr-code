@@ -143,6 +143,25 @@ export const orderConfirmationSchema = z.object({
 });
 
 // ---------------------------------------------------------------------------
+// Platform admin: order retention cleanup
+// ---------------------------------------------------------------------------
+export const ordersCleanupPreviewSchema = z.object({
+  retention_days: z
+    .number()
+    .int()
+    .min(30, "Minimum retention is 30 days"),
+});
+
+/** @deprecated Use ordersCleanupPreviewSchema — kept as alias for preview-only calls. */
+export const ordersCleanupSchema = ordersCleanupPreviewSchema;
+
+export const ORDERS_CLEANUP_CONFIRM_TEXT = "APAGAR PEDIDOS ANTIGOS" as const;
+
+export const ordersCleanupExecuteSchema = ordersCleanupPreviewSchema.extend({
+  confirm_text: z.literal(ORDERS_CLEANUP_CONFIRM_TEXT),
+});
+
+// ---------------------------------------------------------------------------
 // Restaurant: opening hours
 // One interval per weekday; closes_at <= opens_at means overnight (the
 // interval spills into the next day). Times are validated server-side and

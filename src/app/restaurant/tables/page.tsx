@@ -29,14 +29,21 @@ export default async function TablesPage() {
   const isOwner = session.profile.role === "restaurant_owner";
   const supabase = await createServerSupabaseClient();
 
-  const [{ data }, floorState] = await Promise.all([
+  const [{ data }, floorState, restaurantRow] = await Promise.all([
     supabase
       .from("restaurant_tables")
       .select("id, table_number, label, public_token, status, created_at")
       .eq("restaurant_id", session.restaurantId)
       .order("created_at", { ascending: true }),
     fetchTableFloorState(supabase, session.restaurantId),
+    supabase
+      .from("restaurants")
+      .select("require_order_confirmation")
+      .eq("id", session.restaurantId)
+      .maybeSingle<{ require_order_confirmation: boolean }>(),
   ]);
+
+  const requireOrderConfirmation = restaurantRow.data?.require_order_confirmation ?? true;
 
   const appUrl = getAppBaseUrl();
 
@@ -68,12 +75,16 @@ export default async function TablesPage() {
       <div className="mb-5">
         <h1 className="text-xl font-bold text-slate-900">Mesas</h1>
         <p className="max-w-2xl text-sm text-slate-500">
-          Estado operacional de cada mesa. Feche a sessão quando os clientes saírem: os pedidos
-          antigos ficam no histórico e o próximo grupo volta a precisar de confirmação no
-          primeiro pedido. Os QR codes são fixos e podem ser impressos.
+          {requireOrderConfirmation
+            ? "Estado operacional de cada mesa. Abra a sessão quando chegam clientes e feche quando saem — o próximo grupo volta a precisar de confirmação no primeiro pedido. Os QR codes são fixos e podem ser impressos."
+            : "Estado operacional de cada mesa. As sessões são criadas automaticamente quando chegam pedidos. Feche a sessão opcionalmente quando os clientes saírem para limpar a mesa. Os QR codes são fixos e podem ser impressos."}
         </p>
       </div>
-      <TablesManager tables={tables} isOwner={isOwner} />
+      <TablesManager
+        tables={tables}
+        isOwner={isOwner}
+        requireOrderConfirmation={requireOrderConfirmation}
+      />
     </div>
   );
 }

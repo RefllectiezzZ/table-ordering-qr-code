@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FieldError, Input, Label } from "@/components/ui/form";
 import { useApiAction } from "@/components/restaurant/use-api-action";
+import { isAutomaticTableMode } from "@/lib/table-mode";
 import { formatDateTime, relativeTimePt } from "@/lib/utils";
 import type { TableStatus } from "@/types/database";
 
@@ -47,6 +48,7 @@ function tableStateBadges(table: TableData) {
 function FloorCard({
   table,
   isOwner,
+  automaticMode,
   busy,
   onOpenSession,
   onCloseSession,
@@ -54,6 +56,7 @@ function FloorCard({
 }: {
   table: TableData;
   isOwner: boolean;
+  automaticMode: boolean;
   busy: boolean;
   onOpenSession: (table: TableData) => void;
   onCloseSession: (table: TableData) => void;
@@ -80,6 +83,9 @@ function FloorCard({
             {table.label ?? `Mesa ${table.tableNumber}`}
           </CardTitle>
           <div className="mt-1.5 flex flex-wrap gap-1.5">
+            {automaticMode ? (
+              <Badge tone="blue">Modo automático</Badge>
+            ) : null}
             {tableStateBadges(table).map((badge) => (
               <Badge key={badge.label} tone={badge.tone}>
                 {badge.label}
@@ -104,12 +110,19 @@ function FloorCard({
           </dd>
         </dl>
 
+        {automaticMode ? (
+          <p className="border-t border-slate-100 pt-3 text-xs leading-relaxed text-slate-500">
+            Os pedidos criam sessões automaticamente quando chegam. Pode fechar a sessão para
+            limpar a mesa quando os clientes saírem.
+          </p>
+        ) : null}
+
         <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-3">
           {table.openSessionId ? (
             <Button size="sm" variant="outline" disabled={busy} onClick={() => onCloseSession(table)}>
               Fechar sessão
             </Button>
-          ) : (
+          ) : automaticMode ? null : (
             <Button size="sm" variant="outline" disabled={busy} onClick={() => onOpenSession(table)}>
               Abrir sessão
             </Button>
@@ -152,7 +165,16 @@ function FloorCard({
   );
 }
 
-export function TablesManager({ tables, isOwner }: { tables: TableData[]; isOwner: boolean }) {
+export function TablesManager({
+  tables,
+  isOwner,
+  requireOrderConfirmation,
+}: {
+  tables: TableData[];
+  isOwner: boolean;
+  requireOrderConfirmation: boolean;
+}) {
+  const automaticMode = isAutomaticTableMode(requireOrderConfirmation);
   const [showCreate, setShowCreate] = useState(false);
   const [tableNumber, setTableNumber] = useState("");
   const [label, setLabel] = useState("");
@@ -183,12 +205,12 @@ export function TablesManager({ tables, isOwner }: { tables: TableData[]; isOwne
 
   async function closeSession(table: TableData) {
     if (!table.openSessionId) return;
-    if (
-      !window.confirm(
-        `Fechar a sessão da ${table.label ?? `Mesa ${table.tableNumber}`}? ` +
-          "Os pedidos ficam no histórico e os clientes seguintes voltam a precisar de confirmação.",
-      )
-    ) {
+    const closeMessage = automaticMode
+      ? `Fechar a sessão da ${table.label ?? `Mesa ${table.tableNumber}`}? ` +
+        "Os pedidos ficam no histórico e uma nova sessão será criada automaticamente no próximo pedido."
+      : `Fechar a sessão da ${table.label ?? `Mesa ${table.tableNumber}`}? ` +
+        "Os pedidos ficam no histórico e os clientes seguintes voltam a precisar de confirmação.";
+    if (!window.confirm(closeMessage)) {
       return;
     }
 
@@ -224,12 +246,21 @@ export function TablesManager({ tables, isOwner }: { tables: TableData[]; isOwne
         />
       ) : null}
 
+      {automaticMode ? (
+        <p className="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm leading-relaxed text-sky-900">
+          <span className="font-semibold">Modo automático ativo.</span> Os pedidos entram diretamente
+          na cozinha e as sessões de mesa são criadas em segundo plano — não precisa de abrir mesas
+          manualmente.
+        </p>
+      ) : null}
+
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {tables.map((table) => (
           <FloorCard
             key={table.id}
             table={table}
             isOwner={isOwner}
+            automaticMode={automaticMode}
             busy={pending}
             onOpenSession={(t) => void openSession(t)}
             onCloseSession={(t) => void closeSession(t)}

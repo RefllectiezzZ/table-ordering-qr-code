@@ -37,8 +37,11 @@ export function OrderConfirmationForm({
             Confirmar primeiro pedido antes de enviar para a cozinha
           </p>
           <p className="mt-1 text-xs leading-relaxed text-slate-500">
-            Quando ativo, o primeiro pedido de cada telemóvel fica a aguardar confirmação da
-            equipa. Quando desativo, os pedidos entram diretamente na cozinha.
+            <strong>Modo manual (ativo):</strong> o primeiro pedido de cada telemóvel fica a aguardar
+            confirmação da equipa; as sessões de mesa são geridas manualmente em Mesas.
+            <br />
+            <strong>Modo automático (desativo):</strong> os pedidos entram diretamente na cozinha e
+            as sessões de mesa são geridas automaticamente.
           </p>
         </div>
         <Button
@@ -58,8 +61,8 @@ export function OrderConfirmationForm({
         }`}
       >
         {requireConfirmation
-          ? "Mais protegido contra pedidos feitos por pessoas que guardaram o QR."
-          : "Mais prático, mas menos protegido contra pedidos feitos por pessoas que guardaram o QR."}
+          ? "Modo manual: mais protegido contra pedidos feitos por pessoas que guardaram o QR. A equipa confirma o primeiro pedido e gere sessões em Mesas."
+          : "Modo automático: os pedidos entram diretamente na cozinha e as sessões de mesa são geridas automaticamente. Menos protegido contra abuso de QR guardado."}
       </p>
 
       {saved ? <p className="text-xs font-medium text-emerald-600">Guardado.</p> : null}

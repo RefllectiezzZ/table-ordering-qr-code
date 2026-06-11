@@ -22,6 +22,7 @@ import { PublicProductCard } from "./public-product-card";
 import {
   lastOrderStorageKey,
   POLLABLE_STATUSES,
+  POLL_INTERVAL_HIDDEN_MS,
   POLL_INTERVAL_MS,
   readStorage,
   sessionStorageKey,
@@ -173,8 +174,28 @@ export function PublicMenuClient({ data }: { data: PublicMenuData }) {
     if (!activeOrder || !POLLABLE_STATUSES.includes(activeOrder.status)) return;
     const orderToken = activeOrderTokenRef.current;
     if (!orderToken) return;
-    const interval = setInterval(() => void checkOrderStatus(orderToken), POLL_INTERVAL_MS);
-    return () => clearInterval(interval);
+
+    let interval: ReturnType<typeof setInterval>;
+    const poll = () => void checkOrderStatus(orderToken);
+    const schedule = () => {
+      clearInterval(interval);
+      const ms =
+        typeof document !== "undefined" && document.hidden
+          ? POLL_INTERVAL_HIDDEN_MS
+          : POLL_INTERVAL_MS;
+      interval = setInterval(poll, ms);
+    };
+
+    schedule();
+    const onVisibility = () => {
+      if (!document.hidden) void poll();
+      schedule();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, [activeOrder, checkOrderStatus]);
 
   useEffect(() => {
