@@ -8,6 +8,7 @@ export interface AdminNavLabels {
   overview: string;
   restaurants: string;
   users: string;
+  maintenance: string;
 }
 
 export function AdminNav({ labels }: { labels: AdminNavLabels }) {
@@ -17,6 +18,7 @@ export function AdminNav({ labels }: { labels: AdminNavLabels }) {
     { href: "/admin", label: labels.overview, exact: true },
     { href: "/admin/restaurants", label: labels.restaurants, exact: false },
     { href: "/admin/users", label: labels.users, exact: false },
+    { href: "/admin/maintenance", label: labels.maintenance, exact: false },
   ];
 
   return (

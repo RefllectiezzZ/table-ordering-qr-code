@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { adminBrandingUpdateSchema, orderConfirmationSchema } from "@/lib/validation/schemas";
+import {
+  adminBrandingUpdateSchema,
+  orderConfirmationSchema,
+  ordersCleanupSchema,
+} from "@/lib/validation/schemas";
 
 describe("orderConfirmationSchema", () => {
   it("accepts boolean toggle values", () => {
@@ -15,6 +19,18 @@ describe("orderConfirmationSchema", () => {
     expect(() =>
       orderConfirmationSchema.parse({ require_order_confirmation: "yes" }),
     ).toThrow();
+  });
+});
+
+describe("ordersCleanupSchema", () => {
+  it("accepts retention days at or above minimum 30", () => {
+    expect(ordersCleanupSchema.parse({ retention_days: 30 })).toEqual({ retention_days: 30 });
+    expect(ordersCleanupSchema.parse({ retention_days: 90 })).toEqual({ retention_days: 90 });
+  });
+
+  it("rejects retention below 30 days", () => {
+    expect(() => ordersCleanupSchema.parse({ retention_days: 14 })).toThrow();
+    expect(() => ordersCleanupSchema.parse({ retention_days: 7 })).toThrow();
   });
 });
 

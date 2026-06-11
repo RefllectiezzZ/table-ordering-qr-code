@@ -18,6 +18,7 @@ import type { DashboardOrder } from "@/server/dashboard-orders";
 import type { OrderStatus } from "@/types/database";
 
 const POLL_INTERVAL_MS = 8000;
+const POLL_INTERVAL_HIDDEN_MS = 24000;
 
 const STATUS_META: Record<
   OrderStatus,
@@ -327,8 +328,22 @@ export function OrdersBoard({
   }, [filterQuery]);
 
   useEffect(() => {
-    const interval = setInterval(refresh, POLL_INTERVAL_MS);
-    return () => clearInterval(interval);
+    let interval: ReturnType<typeof setInterval>;
+    const schedule = () => {
+      clearInterval(interval);
+      const ms = document.hidden ? POLL_INTERVAL_HIDDEN_MS : POLL_INTERVAL_MS;
+      interval = setInterval(refresh, ms);
+    };
+    schedule();
+    const onVisibility = () => {
+      if (!document.hidden) void refresh();
+      schedule();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, [refresh]);
 
   function clearFresh(orderId: string) {

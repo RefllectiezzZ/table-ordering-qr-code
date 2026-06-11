@@ -72,6 +72,9 @@ export function PublicMenuHero({
           <img
             src={restaurant.coverImageUrl}
             alt=""
+            fetchPriority="high"
+            loading="eager"
+            decoding="async"
             className="h-full w-full object-cover"
           />
           <div

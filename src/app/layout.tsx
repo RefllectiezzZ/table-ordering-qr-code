@@ -30,8 +30,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt" className="h-full antialiased">
-      <body className="flex min-h-full flex-col">{children}</body>
+    // Dev tunnels (e.g. Cursor port forwarding) and some mobile browser tooling
+    // inject attributes on <html>/<body> before React hydrates (__gcrremoteframetoken
+    // and similar). That mismatch is outside app control — suppress only here so
+    // real component-level hydration bugs are still surfaced.
+    <html lang="pt" className="h-full antialiased" suppressHydrationWarning>
+      <body className="flex min-h-full flex-col" suppressHydrationWarning>
+        {children}
+      </body>
     </html>
   );
 }

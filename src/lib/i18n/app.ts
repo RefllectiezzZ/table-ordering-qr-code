@@ -115,6 +115,24 @@ export interface AdminStrings {
   transCommitError: string;
   brandingLink: string;
   translationsLink: string;
+  maintenance: string;
+  maintenanceTitle: string;
+  maintenanceSubtitle: string;
+  retentionCleanupTitle: string;
+  retentionCleanupDescription: string;
+  retentionDaysLabel: string;
+  retentionPreviewButton: string;
+  retentionExecuteButton: string;
+  retentionConfirmLabel: string;
+  retentionPreviewing: string;
+  retentionExecuting: string;
+  retentionOrders: string;
+  retentionOrderItems: string;
+  retentionEmptySessions: string;
+  retentionCutoff: string;
+  retentionSuccess: string;
+  retentionNonTerminalNote: string;
+  retentionCronNote: string;
 }
 
 export const ADMIN_STRINGS: Record<AppLanguage, AdminStrings> = {
@@ -226,6 +244,28 @@ export const ADMIN_STRINGS: Record<AppLanguage, AdminStrings> = {
     transCommitError: "Não foi possível concluir a importação.",
     brandingLink: "Marca & menu",
     translationsLink: "Traduções CSV",
+    maintenance: "Manutenção",
+    maintenanceTitle: "Manutenção da plataforma",
+    maintenanceSubtitle:
+      "Ferramentas administrativas para limpeza de dados antigos. Apenas administradores da plataforma.",
+    retentionCleanupTitle: "Limpeza de retenção de pedidos",
+    retentionCleanupDescription:
+      "Remove pedidos terminais (entregues, cancelados, rejeitados) mais antigos que o período selecionado. Os registos de auditoria são sempre mantidos.",
+    retentionDaysLabel: "Retenção (dias)",
+    retentionPreviewButton: "Pré-visualizar limpeza",
+    retentionExecuteButton: "Confirmar limpeza",
+    retentionConfirmLabel: "Escreva para confirmar:",
+    retentionPreviewing: "A analisar…",
+    retentionExecuting: "A apagar…",
+    retentionOrders: "Pedidos",
+    retentionOrderItems: "Linhas de pedido",
+    retentionEmptySessions: "Sessões vazias",
+    retentionCutoff: "Corte em",
+    retentionSuccess: "Limpeza concluída",
+    retentionNonTerminalNote:
+      "Pedidos em curso (novo, a preparar, pronto, por confirmar) nunca são apagados, mesmo que sejam antigos.",
+    retentionCronNote:
+      "Limpeza automática agendada (cron) não está ativa nesta versão — apenas limpeza manual pelo administrador.",
   },
   en: {
     overview: "Overview",
@@ -335,6 +375,28 @@ export const ADMIN_STRINGS: Record<AppLanguage, AdminStrings> = {
     transCommitError: "Could not commit the import.",
     brandingLink: "Branding & menu",
     translationsLink: "Translations CSV",
+    maintenance: "Maintenance",
+    maintenanceTitle: "Platform maintenance",
+    maintenanceSubtitle:
+      "Administrative tools for cleaning up old data. Platform administrators only.",
+    retentionCleanupTitle: "Order retention cleanup",
+    retentionCleanupDescription:
+      "Deletes terminal orders (delivered, cancelled, rejected) older than the selected period. Audit logs are always kept.",
+    retentionDaysLabel: "Retention (days)",
+    retentionPreviewButton: "Preview cleanup",
+    retentionExecuteButton: "Confirm cleanup",
+    retentionConfirmLabel: "Type to confirm:",
+    retentionPreviewing: "Analysing…",
+    retentionExecuting: "Deleting…",
+    retentionOrders: "Orders",
+    retentionOrderItems: "Order lines",
+    retentionEmptySessions: "Empty sessions",
+    retentionCutoff: "Cutoff at",
+    retentionSuccess: "Cleanup completed",
+    retentionNonTerminalNote:
+      "In-progress orders (new, preparing, ready, pending confirmation) are never deleted, even when old.",
+    retentionCronNote:
+      "Scheduled automatic cleanup (cron) is not enabled in this release — manual admin cleanup only.",
   },
 };
 

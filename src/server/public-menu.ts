@@ -1,5 +1,6 @@
 import "server-only";
 
+import { unstable_cache } from "next/cache";
 import { evaluateOpeningHours } from "@/lib/opening-hours";
 import { resolvePublicMenuBackground } from "@/lib/public-menu/background";
 import { resolvePublicMenuTheme } from "@/lib/public-menu/templates";
@@ -51,6 +52,9 @@ interface PublicRestaurantRow {
   public_menu_surface_style: string;
 }
 
+/** Public menu payload TTL — branding/menu updates may take up to this long to appear. */
+const PUBLIC_MENU_CACHE_SECONDS = 30;
+
 /**
  * Resolves a public QR token into the sanitized menu payload for /t/[token].
  *
@@ -58,12 +62,26 @@ interface PublicRestaurantRow {
  * field selection here is the public API surface: only branding, table
  * number/label, active categories and active products with translations.
  * Never staff data, never other restaurants, never other tables' tokens.
+ *
+ * Cached for 30 seconds per token (opening/pause state included). Dashboard,
+ * admin, auth and order endpoints are never cached.
  */
 export async function resolvePublicMenu(token: string): Promise<PublicMenuResolution> {
   if (!isValidPublicTokenFormat(token)) {
     return { state: "invalid_token" };
   }
 
+  return getCachedPublicMenu(token);
+}
+
+const getCachedPublicMenu = (token: string) =>
+  unstable_cache(
+    () => resolvePublicMenuUncached(token),
+    ["public-menu", token],
+    { revalidate: PUBLIC_MENU_CACHE_SECONDS, tags: [`public-menu-${token}`] },
+  )();
+
+async function resolvePublicMenuUncached(token: string): Promise<PublicMenuResolution> {
   const supabase = createServiceRoleSupabaseClient();
 
   const { data: table } = await supabase

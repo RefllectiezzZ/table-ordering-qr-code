@@ -23,7 +23,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
               TableOrder <span className="font-normal text-slate-400">· {t.platformAdmin}</span>
             </Link>
             <AdminNav
-              labels={{ overview: t.overview, restaurants: t.restaurants, users: t.users }}
+              labels={{
+                overview: t.overview,
+                restaurants: t.restaurants,
+                users: t.users,
+                maintenance: t.maintenance,
+              }}
             />
           </div>
           <div className="flex items-center gap-2">

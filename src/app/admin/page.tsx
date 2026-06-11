@@ -58,9 +58,12 @@ export default async function AdminOverviewPage() {
         ))}
       </div>
 
-      <div className="mt-6">
+      <div className="mt-6 flex flex-wrap gap-4">
         <Link href="/admin/restaurants" className="text-sm font-medium text-sky-700 hover:underline">
           {t.manageRestaurants}
+        </Link>
+        <Link href="/admin/maintenance" className="text-sm font-medium text-sky-700 hover:underline">
+          {t.maintenance} →
         </Link>
       </div>
     </div>

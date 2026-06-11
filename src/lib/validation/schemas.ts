@@ -143,6 +143,16 @@ export const orderConfirmationSchema = z.object({
 });
 
 // ---------------------------------------------------------------------------
+// Platform admin: order retention cleanup
+// ---------------------------------------------------------------------------
+export const ordersCleanupSchema = z.object({
+  retention_days: z
+    .number()
+    .int()
+    .min(30, "Minimum retention is 30 days"),
+});
+
+// ---------------------------------------------------------------------------
 // Restaurant: opening hours
 // One interval per weekday; closes_at <= opens_at means overnight (the
 // interval spills into the next day). Times are validated server-side and
