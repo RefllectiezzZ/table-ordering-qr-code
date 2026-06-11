@@ -51,7 +51,7 @@ export function TableBillView({
   async function closeSession() {
     if (!bill) return;
     const message =
-      "Fechar sessão não processa pagamento nem emite fatura. Use quando a conta já foi tratada fora do sistema.\n\nFechar a sessão desta mesa?";
+      "Fechar sessão não marca pagamento nem emite fatura. Use apenas quando a conta já foi tratada fora do sistema.\n\nFechar a sessão desta mesa?";
     if (!window.confirm(message)) return;
 
     const ok = await run(`/api/restaurant/table-sessions/${bill.sessionId}/close`, {
@@ -107,9 +107,14 @@ export function TableBillView({
         <Button variant="ghost" size="sm" onClick={() => router.refresh()}>
           Atualizar
         </Button>
-        <Button variant="ghost" size="sm" onClick={() => window.print()}>
-          Imprimir conta
-        </Button>
+        <div className="flex flex-col items-start gap-0.5">
+          <Button variant="ghost" size="sm" onClick={() => window.print()}>
+            Imprimir conta
+          </Button>
+          <span className="text-[10px] leading-snug text-slate-400">
+            Impressão simples para apoio operacional. Não é documento fiscal.
+          </span>
+        </div>
         <Button variant="outline" size="sm" disabled={pending} onClick={() => void closeSession()}>
           {pending ? "A fechar…" : "Fechar sessão"}
         </Button>
@@ -123,6 +128,18 @@ export function TableBillView({
           </p>
         </CardHeader>
         <CardContent className="space-y-6">
+          <div
+            className="rounded-lg border border-amber-100 bg-amber-50 p-3 text-xs leading-relaxed text-amber-900"
+            role="note"
+          >
+            <p>Esta conta é apenas um resumo operacional dos pedidos da sessão.</p>
+            <p className="mt-1">Não processa pagamento. Não emite fatura.</p>
+            <p className="mt-1">
+              O pagamento e a fatura devem ser tratados fora do sistema, pelo método habitual do
+              restaurante.
+            </p>
+          </div>
+
           {bill.orders.length === 0 ? (
             <p className="text-sm text-slate-500">
               Ainda não há pedidos confirmados nesta sessão.
@@ -166,7 +183,7 @@ export function TableBillView({
           </div>
 
           <p className="print:hidden text-xs leading-relaxed text-slate-500">
-            Fechar sessão não processa pagamento nem emite fatura. Use quando a conta já foi
+            Fechar sessão não marca pagamento nem emite fatura. Use apenas quando a conta já foi
             tratada fora do sistema.
           </p>
         </CardContent>

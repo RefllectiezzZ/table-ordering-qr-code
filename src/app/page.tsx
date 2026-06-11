@@ -252,11 +252,14 @@ export default async function LandingPage() {
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-4 py-8 text-xs text-slate-500 sm:flex-row sm:px-6">
           <span>{t.footerTagline}</span>
           <nav className="flex gap-4">
-            <Link href="/terms" className="hover:text-slate-900">
+            <Link href="/legal/terms" className="hover:text-slate-900">
               {t.footerTerms}
             </Link>
-            <Link href="/privacy" className="hover:text-slate-900">
+            <Link href="/legal/privacy" className="hover:text-slate-900">
               {t.footerPrivacy}
+            </Link>
+            <Link href="/legal/support" className="hover:text-slate-900">
+              Suporte
             </Link>
             <Link href="/allergen-disclaimer" className="hover:text-slate-900">
               {t.footerAllergens}

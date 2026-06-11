@@ -24,6 +24,7 @@ interface PublicProductCardProps {
   secondary: string;
   addLabel: string;
   unavailableLabel: string;
+  allergensNotIndicatedLabel: string;
   inCartQty?: number;
   onAdd: () => void;
   onIncrement?: () => void;
@@ -43,6 +44,7 @@ export function PublicProductCard({
   secondary,
   addLabel,
   unavailableLabel,
+  allergensNotIndicatedLabel,
   inCartQty = 0,
   onAdd,
   onIncrement,
@@ -81,9 +83,9 @@ export function PublicProductCard({
           {description}
         </p>
       ) : null}
-      {product.allergenCodes.length > 0 ? (
-        <p className="mt-2 flex flex-wrap items-center gap-1">
-          {product.allergenCodes.map((code) => (
+      <p className="mt-2 flex flex-wrap items-center gap-1">
+        {product.allergenCodes.length > 0 ? (
+          product.allergenCodes.map((code) => (
             <span
               key={code}
               className={cn(
@@ -93,9 +95,18 @@ export function PublicProductCard({
             >
               {getAllergenName(code, language)}
             </span>
-          ))}
-        </p>
-      ) : null}
+          ))
+        ) : (
+          <span
+            className={cn(
+              "text-[10px] italic",
+              tokens.isDark ? "text-stone-500" : "text-slate-400",
+            )}
+          >
+            {allergensNotIndicatedLabel}
+          </span>
+        )}
+      </p>
       {product.dietaryTags.length > 0 ? (
         <p className="mt-1.5 flex flex-wrap gap-1">
           {product.dietaryTags.map((tag) => (

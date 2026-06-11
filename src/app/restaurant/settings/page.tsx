@@ -151,6 +151,20 @@ export default async function SettingsPage() {
           </CardContent>
         </Card>
 
+        <Card className="transition-shadow hover:shadow-md">
+          <CardHeader>
+            <CardTitle>Ajuda e suporte</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm text-slate-600">
+            <p>Contacto, procedimentos de emergência e informação legal.</p>
+            <Link href="/restaurant/help">
+              <Button variant="outline" size="sm">
+                Abrir ajuda
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+
         <Card className="transition-shadow hover:shadow-md lg:col-span-2">
           <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
             <CardTitle>Horário de funcionamento</CardTitle>

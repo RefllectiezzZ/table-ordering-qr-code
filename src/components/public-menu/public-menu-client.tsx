@@ -473,6 +473,7 @@ export function PublicMenuClient({ data }: { data: PublicMenuData }) {
                         secondary={secondary}
                         addLabel={t.addToCart}
                         unavailableLabel={t.unavailable}
+                        allergensNotIndicatedLabel={t.allergensNotIndicated}
                         inCartQty={cartQtyByProduct.get(product.id) ?? 0}
                         onAdd={() => addToCart(product.id)}
                         onIncrement={() => changeQuantity(product.id, 1)}
@@ -502,6 +503,21 @@ export function PublicMenuClient({ data }: { data: PublicMenuData }) {
                 {t.allergenDisclaimer}
               </p>
             </div>
+            <footer
+              className={`mb-6 flex flex-wrap justify-center gap-x-4 gap-y-1 text-[11px] ${
+                tokens.isDark ? "text-stone-500" : "text-slate-400"
+              }`}
+            >
+              <a href="/legal/privacy" className="hover:underline">
+                {t.legalPrivacy}
+              </a>
+              <a href="/legal/terms" className="hover:underline">
+                {t.legalTerms}
+              </a>
+              <a href="/legal/support" className="hover:underline">
+                Suporte
+              </a>
+            </footer>
           </section>
         )}
       </div>

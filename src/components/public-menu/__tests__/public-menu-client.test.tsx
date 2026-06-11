@@ -162,6 +162,13 @@ describe("PublicMenuClient (SSR smoke)", () => {
     expect(html).toContain("cdn.example.com/bg.webp");
   });
 
+  it("shows allergen disclaimer and missing-allergen wording", () => {
+    const html = renderToString(<PublicMenuClient data={menuData()} />);
+    expect(html).toContain("Informação de alergénios fornecida pelo restaurante");
+    expect(html).toContain("Sem informação de alergénios indicada");
+    expect(html).not.toContain("Sem alergénios");
+  });
+
   it("does not embed client order tokens in SSR markup", () => {
     const html = renderToString(<PublicMenuClient data={menuData()} />);
     expect(html).not.toMatch(

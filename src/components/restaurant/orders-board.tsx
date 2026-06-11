@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,17 @@ import {
   type OrdersFilter,
 } from "@/lib/orders-filters";
 import { formatCentsToEuro } from "@/lib/money";
+import {
+  detectNewAlertableOrderIds,
+  shouldPlayNewOrderSound,
+} from "@/lib/orders-alerts";
+import {
+  ordersSoundServerSnapshot,
+  playNewOrderBeep,
+  readOrdersSoundEnabled,
+  subscribeOrdersSoundEnabled,
+  writeOrdersSoundEnabled,
+} from "@/lib/order-sound";
 import { cn, formatDateTime, relativeTimePt } from "@/lib/utils";
 import type { DashboardOrder } from "@/server/dashboard-orders";
 import type { OrderStatus } from "@/types/database";
@@ -248,7 +259,14 @@ function OrderCard({
             ) : null}
           </p>
         </div>
-        <Badge tone={STATUS_META[order.status].tone}>{STATUS_META[order.status].label}</Badge>
+        <div className="flex flex-col items-end gap-1">
+          {fresh ? (
+            <span className="rounded bg-red-600 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+              Novo
+            </span>
+          ) : null}
+          <Badge tone={STATUS_META[order.status].tone}>{STATUS_META[order.status].label}</Badge>
+        </div>
       </header>
 
       <ul className="mb-2 space-y-1.5">
@@ -294,9 +312,17 @@ export function OrdersBoard({
   const [updating, setUpdating] = useState<string | null>(null);
   const [pollError, setPollError] = useState(false);
   const knownIdsRef = useRef<Set<string>>(new Set(initialOrders.map((o) => o.id)));
+  const initialLoadRef = useRef(true);
+  const soundedIdsRef = useRef<Set<string>>(new Set());
   const [freshIds, setFreshIds] = useState<Set<string>>(new Set());
+  const soundEnabled = useSyncExternalStore(
+    subscribeOrdersSoundEnabled,
+    readOrdersSoundEnabled,
+    ordersSoundServerSnapshot,
+  );
 
   const filterQuery = useMemo(() => ordersFilterQueryString(initialFilter), [initialFilter]);
+  const isHistoryBoard = initialFilter.board === "history";
 
   const refresh = useCallback(async () => {
     try {
@@ -310,22 +336,37 @@ export function OrdersBoard({
       const payload = (await response.json()) as { orders: DashboardOrder[] };
       setPollError(false);
 
-      const incoming = payload.orders
-        .filter(
-          (o) =>
-            (o.status === "new" || o.status === "pending_confirmation") &&
-            !knownIdsRef.current.has(o.id),
-        )
-        .map((o) => o.id);
+      const isInitialLoad = initialLoadRef.current;
+      const incoming = detectNewAlertableOrderIds(
+        knownIdsRef.current,
+        payload.orders,
+        isInitialLoad || isHistoryBoard,
+      );
       payload.orders.forEach((o) => knownIdsRef.current.add(o.id));
+      initialLoadRef.current = false;
+
       if (incoming.length > 0) {
         setFreshIds((current) => new Set([...current, ...incoming]));
+        if (
+          soundEnabled &&
+          !isHistoryBoard &&
+          shouldPlayNewOrderSound(incoming, soundedIdsRef.current)
+        ) {
+          playNewOrderBeep();
+          incoming.forEach((id) => soundedIdsRef.current.add(id));
+        }
       }
       setOrders(payload.orders);
     } catch {
       setPollError(true);
     }
-  }, [filterQuery]);
+  }, [filterQuery, isHistoryBoard, soundEnabled]);
+
+  function toggleSound() {
+    const next = !soundEnabled;
+    writeOrdersSoundEnabled(next);
+    if (next) playNewOrderBeep();
+  }
 
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
@@ -441,6 +482,21 @@ export function OrdersBoard({
       <FilterBar filter={initialFilter} onBoardChange={changeBoard} />
 
       <div className="mb-4 flex flex-wrap items-center gap-3 text-sm text-slate-500">
+        {board !== "history" ? (
+          <button
+            type="button"
+            onClick={toggleSound}
+            aria-pressed={soundEnabled}
+            className={cn(
+              "rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors",
+              soundEnabled
+                ? "border-emerald-300 bg-emerald-50 text-emerald-800"
+                : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50",
+            )}
+          >
+            Som de novos pedidos: {soundEnabled ? "Ligado" : "Desligado"}
+          </button>
+        ) : null}
         {board === "kitchen" ? (
           <span>
             <strong className="text-slate-900">{kitchen.length}</strong> para preparar
