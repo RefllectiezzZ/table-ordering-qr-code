@@ -18,9 +18,21 @@ export async function POST(request: Request) {
   const parsed = await parseJsonBody(request, orderConfirmationSchema);
   if (!parsed.ok) return parsed.response;
 
+  const updates: {
+    require_order_confirmation: boolean;
+    enable_table_sessions?: boolean;
+  } = {
+    require_order_confirmation: parsed.data.require_order_confirmation,
+  };
+
+  // Backward compatibility: confirmation ON requires sessions ON.
+  if (parsed.data.require_order_confirmation) {
+    updates.enable_table_sessions = true;
+  }
+
   const { error } = await auth.supabase
     .from("restaurants")
-    .update({ require_order_confirmation: parsed.data.require_order_confirmation })
+    .update(updates)
     .eq("id", auth.restaurantId!);
 
   if (error) {

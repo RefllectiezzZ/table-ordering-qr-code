@@ -6,7 +6,7 @@ import {
   OpeningHoursForm,
   type OpeningHoursDayValue,
 } from "@/components/restaurant/opening-hours-form";
-import { OrderConfirmationForm } from "@/components/restaurant/order-confirmation-form";
+import { TableSecurityForm } from "@/components/restaurant/table-security-form";
 import { OrdersAvailabilityForm } from "@/components/restaurant/orders-availability-form";
 import { LANGUAGE_LABELS } from "@/lib/i18n";
 import { evaluateOpeningHours, formatTimeHHMM } from "@/lib/opening-hours";
@@ -27,7 +27,7 @@ export default async function SettingsPage() {
     supabase
       .from("restaurants")
       .select(
-        "name, slug, status, default_language, enabled_languages, accepts_orders, paused_message, timezone, require_order_confirmation, created_at",
+        "name, slug, status, default_language, enabled_languages, accepts_orders, paused_message, timezone, require_order_confirmation, enable_table_sessions, created_at",
       )
       .eq("id", session.restaurantId)
       .maybeSingle<
@@ -42,6 +42,7 @@ export default async function SettingsPage() {
           | "paused_message"
           | "timezone"
           | "require_order_confirmation"
+          | "enable_table_sessions"
           | "created_at"
         >
       >(),
@@ -87,11 +88,12 @@ export default async function SettingsPage() {
 
         <Card className="transition-shadow hover:shadow-md">
           <CardHeader>
-            <CardTitle>Confirmação de pedidos</CardTitle>
+            <CardTitle>Modo de segurança da mesa</CardTitle>
           </CardHeader>
           <CardContent>
-            <OrderConfirmationForm
+            <TableSecurityForm
               initialRequireConfirmation={restaurant.require_order_confirmation ?? true}
+              initialEnableTableSessions={restaurant.enable_table_sessions ?? true}
             />
           </CardContent>
         </Card>

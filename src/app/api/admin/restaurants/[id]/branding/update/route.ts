@@ -76,6 +76,9 @@ export async function POST(
   }
   if (d.require_order_confirmation !== undefined) {
     fieldUpdates.require_order_confirmation = d.require_order_confirmation;
+    if (d.require_order_confirmation) {
+      fieldUpdates.enable_table_sessions = true;
+    }
   }
 
   if (Object.keys(fieldUpdates).length === 0) {

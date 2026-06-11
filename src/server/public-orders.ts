@@ -5,6 +5,7 @@ import { buildOrderItems, type OrderableProduct } from "@/lib/order-items";
 import { OPEN_ORDER_STATUSES, orderShortCode } from "@/lib/orders";
 import { createServiceRoleSupabaseClient } from "@/lib/supabase/service-role";
 import { fetchOpeningHours } from "@/server/opening-hours";
+import { resolvePublicOrderRouting } from "@/lib/public-order-routing";
 import {
   ensureOpenSession,
   issueSessionTokenForOrder,
@@ -85,7 +86,9 @@ export async function createPublicOrder(
 
   const { data: restaurant } = await supabase
     .from("restaurants")
-    .select("id, status, accepts_orders, paused_message, timezone, require_order_confirmation")
+    .select(
+      "id, status, accepts_orders, paused_message, timezone, require_order_confirmation, enable_table_sessions",
+    )
     .eq("id", table.restaurant_id)
     .maybeSingle<{
       id: string;
@@ -94,6 +97,7 @@ export async function createPublicOrder(
       paused_message: string | null;
       timezone: string;
       require_order_confirmation: boolean;
+      enable_table_sessions: boolean;
     }>();
 
   if (!restaurant || restaurant.status !== "active") {
@@ -122,15 +126,15 @@ export async function createPublicOrder(
   const existing = await findExistingOrder(supabase, restaurant.id, input.client_order_token);
   if (existing) return { ok: true, order: existing, deduplicated: true, sessionEnded: false };
 
-  let tableSessionId: string | null = null;
-  let sessionEnded = false;
-  let initialStatus: OrderStatus;
+  const enableTableSessions = restaurant.enable_table_sessions ?? true;
+  const requireOrderConfirmation =
+    enableTableSessions && restaurant.require_order_confirmation;
 
-  if (restaurant.require_order_confirmation) {
-    // Browser authorization: a valid token for an open session on THIS table
-    // sends the order straight to the kitchen. Anything else degrades to
-    // pending_confirmation.
-    if (input.session_token) {
+  let resolvedSessionId: string | null = null;
+  let hasValidSessionToken = false;
+
+  if (enableTableSessions) {
+    if (requireOrderConfirmation && input.session_token) {
       const valid = await validateSessionToken(
         supabase,
         restaurant.id,
@@ -138,23 +142,30 @@ export async function createPublicOrder(
         input.session_token,
       );
       if (valid) {
-        tableSessionId = valid.sessionId;
-      } else {
-        sessionEnded = true;
+        hasValidSessionToken = true;
+        resolvedSessionId = valid.sessionId;
       }
+    } else if (!requireOrderConfirmation) {
+      const session = await ensureOpenSession(supabase, restaurant.id, table.id, null);
+      if (!session) {
+        console.error("public_order_session_create_failed");
+        return { ok: false, status: 500, code: "internal_error" };
+      }
+      resolvedSessionId = session.id;
     }
-    initialStatus = tableSessionId ? "new" : "pending_confirmation";
-  } else {
-    // Direct mode: attach to the table's open session (create if needed) and
-    // send straight to the kitchen — no browser authorization required.
-    const session = await ensureOpenSession(supabase, restaurant.id, table.id, null);
-    if (!session) {
-      console.error("public_order_session_create_failed");
-      return { ok: false, status: 500, code: "internal_error" };
-    }
-    tableSessionId = session.id;
-    initialStatus = "new";
   }
+
+  const routing = resolvePublicOrderRouting({
+    enableTableSessions,
+    requireOrderConfirmation,
+    sessionTokenProvided: Boolean(input.session_token),
+    hasValidSessionToken,
+    resolvedSessionId,
+  });
+
+  const tableSessionId = routing.tableSessionId;
+  const initialStatus = routing.initialStatus;
+  const sessionEnded = routing.sessionEnded;
 
   const productIds = [...new Set(input.items.map((item) => item.product_id))];
   const { data: products } = await supabase
@@ -325,12 +336,30 @@ export async function getPublicOrderStatus(
     return { ok: false, status: 404, code: "order_not_found" };
   }
 
+  const { data: restaurant } = await supabase
+    .from("restaurants")
+    .select("require_order_confirmation, enable_table_sessions")
+    .eq("id", order.restaurant_id)
+    .maybeSingle<{
+      require_order_confirmation: boolean;
+      enable_table_sessions: boolean;
+    }>();
+
+  const enableTableSessions = restaurant?.enable_table_sessions ?? true;
+  const requireOrderConfirmation =
+    enableTableSessions && (restaurant?.require_order_confirmation ?? true);
+
   // Lazily issue the browser authorization the first time the device polls a
   // confirmed order that is attached to a still-open session. The raw token
   // is generated here and never persisted; replays get null.
   let sessionToken: string | null = null;
   const isConfirmedOpen = (OPEN_ORDER_STATUSES as string[]).includes(order.status);
-  if (isConfirmedOpen && order.table_session_id) {
+  if (
+    enableTableSessions &&
+    requireOrderConfirmation &&
+    isConfirmedOpen &&
+    order.table_session_id
+  ) {
     const { data: session } = await supabase
       .from("table_sessions")
       .select("id, status")
