@@ -9,6 +9,19 @@ import { useApiAction } from "@/components/restaurant/use-api-action";
 import { LANGUAGE_LABELS } from "@/lib/i18n";
 import type { AdminStrings } from "@/lib/i18n/app";
 import {
+  PUBLIC_MENU_BACKGROUND_MODES,
+  PUBLIC_MENU_BACKGROUND_OVERLAYS,
+  PUBLIC_MENU_BACKGROUND_POSITIONS,
+  PUBLIC_MENU_SURFACE_STYLES,
+  applySurfaceStyleToTokens,
+  buildPublicMenuPageShellStyles,
+  resolvePublicMenuBackground,
+  type PublicMenuBackgroundMode,
+  type PublicMenuBackgroundOverlay,
+  type PublicMenuBackgroundPosition,
+  type PublicMenuSurfaceStyle,
+} from "@/lib/public-menu/background";
+import {
   PUBLIC_MENU_BACKGROUND_STYLES,
   PUBLIC_MENU_CARD_STYLES,
   PUBLIC_MENU_CART_STYLES,
@@ -42,6 +55,12 @@ interface BrandingState {
   publicMenuBackgroundStyle: PublicMenuBackgroundStyle;
   publicMenuCartStyle: PublicMenuCartStyle;
   publicMenuShowImages: boolean;
+  publicMenuBackgroundImageUrl: string;
+  publicMenuBackgroundMode: PublicMenuBackgroundMode;
+  publicMenuBackgroundPosition: PublicMenuBackgroundPosition;
+  publicMenuBackgroundOverlay: PublicMenuBackgroundOverlay;
+  publicMenuBackgroundOverlayOpacity: number;
+  publicMenuSurfaceStyle: PublicMenuSurfaceStyle;
 }
 
 const HEX_REGEX = /^#[0-9a-fA-F]{6}$/;
@@ -60,9 +79,10 @@ export function AdminBrandingForm({
   const [form, setForm] = useState<BrandingState>(initial);
   const [saved, setSaved] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   const { run, pending, error } = useApiAction();
 
-  const previewTokens = getPublicMenuTemplateTokens({
+  const previewBaseTokens = getPublicMenuTemplateTokens({
     template: form.publicMenuTemplate,
     density: form.publicMenuDensity,
     cardStyle: form.publicMenuCardStyle,
@@ -71,6 +91,24 @@ export function AdminBrandingForm({
     cartStyle: form.publicMenuCartStyle,
     showImages: form.publicMenuShowImages,
   });
+  const previewBackground = resolvePublicMenuBackground({
+    public_menu_background_image_url: form.publicMenuBackgroundImageUrl.trim() || null,
+    public_menu_background_mode: form.publicMenuBackgroundMode,
+    public_menu_background_position: form.publicMenuBackgroundPosition,
+    public_menu_background_overlay: form.publicMenuBackgroundOverlay,
+    public_menu_background_overlay_opacity: form.publicMenuBackgroundOverlayOpacity,
+    public_menu_surface_style: form.publicMenuSurfaceStyle,
+  });
+  const previewTokens = applySurfaceStyleToTokens(
+    previewBaseTokens,
+    previewBackground.surfaceStyle,
+    previewBaseTokens.isDark,
+  );
+  const previewShell = buildPublicMenuPageShellStyles(
+    previewTokens.pageBackground,
+    previewBackground,
+    form.primaryColor,
+  );
 
   const templateLabel = PUBLIC_MENU_TEMPLATE_LABELS[form.publicMenuTemplate];
 
@@ -121,8 +159,38 @@ export function AdminBrandingForm({
       public_menu_background_style: form.publicMenuBackgroundStyle,
       public_menu_cart_style: form.publicMenuCartStyle,
       public_menu_show_images: form.publicMenuShowImages,
+      public_menu_background_image_url: form.publicMenuBackgroundImageUrl.trim(),
+      public_menu_background_mode: form.publicMenuBackgroundMode,
+      public_menu_background_position: form.publicMenuBackgroundPosition,
+      public_menu_background_overlay: form.publicMenuBackgroundOverlay,
+      public_menu_background_overlay_opacity: form.publicMenuBackgroundOverlayOpacity,
+      public_menu_surface_style: form.publicMenuSurfaceStyle,
     });
     if (ok) setSaved(true);
+  }
+
+  async function handleBackgroundUpload(file: File) {
+    setLocalError(null);
+    setUploading(true);
+    try {
+      const body = new FormData();
+      body.append("file", file);
+      const response = await fetch(
+        `/api/admin/restaurants/${restaurantId}/branding/upload-background`,
+        { method: "POST", body },
+      );
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => ({}))) as { error?: string };
+        setLocalError(payload.error ?? "Upload failed");
+        return;
+      }
+      const payload = (await response.json()) as { url: string };
+      setForm((f) => ({ ...f, publicMenuBackgroundImageUrl: payload.url }));
+    } catch {
+      setLocalError("Upload failed");
+    } finally {
+      setUploading(false);
+    }
   }
 
   return (
@@ -183,6 +251,108 @@ export function AdminBrandingForm({
                 onChange={(e) => setForm((f) => ({ ...f, welcomeMessage: e.target.value }))}
               />
             </div>
+
+            <fieldset className="rounded-lg border border-slate-200 p-4">
+              <legend className="px-1 text-sm font-semibold text-slate-800">
+                {labels.publicMenuBackgroundSection}
+              </legend>
+              <p className="mb-3 text-xs text-slate-500">{labels.publicMenuBackgroundNote}</p>
+              <div className="space-y-3">
+                <div>
+                  <Label htmlFor="bg-image-url">{labels.publicMenuBackgroundImageUrl}</Label>
+                  <Input
+                    id="bg-image-url"
+                    type="url"
+                    placeholder="https://…/background.jpg"
+                    value={form.publicMenuBackgroundImageUrl}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, publicMenuBackgroundImageUrl: e.target.value }))
+                    }
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="bg-upload">{labels.publicMenuBackgroundUpload}</Label>
+                  <input
+                    id="bg-upload"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    disabled={uploading}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) void handleBackgroundUpload(file);
+                      e.target.value = "";
+                    }}
+                    className="block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-sm file:font-medium file:text-slate-700"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <SelectField
+                    id="bg-mode"
+                    label={labels.publicMenuBackgroundMode}
+                    value={form.publicMenuBackgroundMode}
+                    options={PUBLIC_MENU_BACKGROUND_MODES}
+                    onChange={(v) =>
+                      setForm((f) => ({
+                        ...f,
+                        publicMenuBackgroundMode: v as PublicMenuBackgroundMode,
+                      }))
+                    }
+                  />
+                  <SelectField
+                    id="bg-position"
+                    label={labels.publicMenuBackgroundPosition}
+                    value={form.publicMenuBackgroundPosition}
+                    options={PUBLIC_MENU_BACKGROUND_POSITIONS}
+                    onChange={(v) =>
+                      setForm((f) => ({
+                        ...f,
+                        publicMenuBackgroundPosition: v as PublicMenuBackgroundPosition,
+                      }))
+                    }
+                  />
+                  <SelectField
+                    id="bg-overlay"
+                    label={labels.publicMenuBackgroundOverlay}
+                    value={form.publicMenuBackgroundOverlay}
+                    options={PUBLIC_MENU_BACKGROUND_OVERLAYS}
+                    onChange={(v) =>
+                      setForm((f) => ({
+                        ...f,
+                        publicMenuBackgroundOverlay: v as PublicMenuBackgroundOverlay,
+                      }))
+                    }
+                  />
+                  <SelectField
+                    id="bg-surface"
+                    label={labels.publicMenuSurfaceStyle}
+                    value={form.publicMenuSurfaceStyle}
+                    options={PUBLIC_MENU_SURFACE_STYLES}
+                    onChange={(v) =>
+                      setForm((f) => ({
+                        ...f,
+                        publicMenuSurfaceStyle: v as PublicMenuSurfaceStyle,
+                      }))
+                    }
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="bg-opacity">{labels.publicMenuBackgroundOverlayOpacity}</Label>
+                  <Input
+                    id="bg-opacity"
+                    type="number"
+                    min={0}
+                    max={90}
+                    value={form.publicMenuBackgroundOverlayOpacity}
+                    onChange={(e) =>
+                      setForm((f) => ({
+                        ...f,
+                        publicMenuBackgroundOverlayOpacity: Number(e.target.value),
+                      }))
+                    }
+                  />
+                </div>
+              </div>
+            </fieldset>
 
             <fieldset className="rounded-lg border border-slate-200 p-4">
               <legend className="px-1 text-sm font-semibold text-slate-800">
@@ -324,9 +494,24 @@ export function AdminBrandingForm({
               {labels.templateIntent}
             </p>
             <div
-              className="mt-3 overflow-hidden rounded-2xl border shadow-sm"
-              style={{ background: previewTokens.pageBackground }}
+              className="relative mt-3 overflow-hidden rounded-2xl border shadow-sm"
+              style={previewShell.root}
             >
+              {previewShell.backdrop ? (
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute inset-0"
+                  style={previewShell.backdrop}
+                />
+              ) : null}
+              {previewShell.overlay ? (
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute inset-0"
+                  style={previewShell.overlay}
+                />
+              ) : null}
+              <div className="relative">
               <div
                 className="h-16"
                 style={{
@@ -386,6 +571,7 @@ export function AdminBrandingForm({
                     </div>
                   </div>
                 </div>
+              </div>
               </div>
             </div>
             <p className="mt-2 text-xs text-slate-500">{templateLabel.intent}</p>

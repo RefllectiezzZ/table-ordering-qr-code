@@ -4,34 +4,66 @@ import type { OrderStatus } from "@/types/database";
 /**
  * URL-persisted filters for the restaurant orders page.
  *
- * The client writes filters into the query string; the server re-parses them
- * here with strict validation before they reach any database query. Dates
- * travel as full ISO-8601 instants (the browser converts the staff member's
- * local date/time inputs), so no timezone guessing happens server-side.
+ * Board tabs (kitchen / staff / history) live in `view`. Time windows live in
+ * `range`. Dates travel as full ISO-8601 instants for custom ranges.
  */
 
-export const ORDER_VIEWS = ["open", "pending", "today", "24h", "all", "custom"] as const;
-export type OrdersView = (typeof ORDER_VIEWS)[number];
+export const ORDER_BOARD_VIEWS = ["kitchen", "staff", "history"] as const;
+export type OrderBoardView = (typeof ORDER_BOARD_VIEWS)[number];
+
+export const ORDER_RANGE_VIEWS = ["open", "today", "24h", "all", "custom"] as const;
+export type OrderRangeView = (typeof ORDER_RANGE_VIEWS)[number];
+
+/** @deprecated Legacy combined views — mapped for old bookmarked URLs. */
+export const LEGACY_ORDER_VIEWS = ["open", "pending", "today", "24h", "all", "custom"] as const;
+export type LegacyOrdersView = (typeof LEGACY_ORDER_VIEWS)[number];
 
 export interface OrdersFilter {
-  view: OrdersView;
-  /** Validated ISO instants (only set for the custom view). */
+  board: OrderBoardView;
+  range: OrderRangeView;
+  /** Validated ISO instants (only set for the custom range). */
   fromIso: string | null;
   toIso: string | null;
 }
 
 export const DEFAULT_ORDERS_FILTER: OrdersFilter = {
-  view: "open",
+  board: "kitchen",
+  range: "open",
   fromIso: null,
   toIso: null,
 };
 
-/** Statuses fetched for each view; null = no status restriction. */
-export function statusesForView(view: OrdersView): OrderStatus[] | null {
-  switch (view) {
+const LEGACY_VIEW_MAP: Record<
+  LegacyOrdersView,
+  Pick<OrdersFilter, "board" | "range">
+> = {
+  open: { board: "kitchen", range: "open" },
+  pending: { board: "staff", range: "open" },
+  today: { board: "kitchen", range: "today" },
+  "24h": { board: "kitchen", range: "24h" },
+  all: { board: "kitchen", range: "all" },
+  custom: { board: "kitchen", range: "custom" },
+};
+
+/** Statuses fetched for each board tab. */
+export function statusesForBoard(board: OrderBoardView): OrderStatus[] {
+  switch (board) {
+    case "kitchen":
+      return [...OPEN_ORDER_STATUSES];
+    case "staff":
+      return ["pending_confirmation", "rejected", "cancelled"];
+    case "history":
+      return [...CLOSED_ORDER_STATUSES];
+  }
+}
+
+/** @deprecated Use statusesForBoard — kept for tests migrating from the old API. */
+export function statusesForView(view: LegacyOrdersView | OrderBoardView): OrderStatus[] | null {
+  if ((ORDER_BOARD_VIEWS as readonly string[]).includes(view)) {
+    return statusesForBoard(view as OrderBoardView);
+  }
+  switch (view as LegacyOrdersView) {
     case "open":
-      // Kitchen default: confirmed open orders + the pending queue (rendered
-      // in its own reception section, never as kitchen-ready).
       return ["pending_confirmation", ...OPEN_ORDER_STATUSES];
     case "pending":
       return ["pending_confirmation"];
@@ -50,7 +82,6 @@ export function parseIsoInstant(value: string | undefined | null): string | null
   }
   const ms = Date.parse(value);
   if (!Number.isFinite(ms)) return null;
-  // Reject absurd values (keeps indexes happy, avoids year-9999 abuse).
   const now = Date.now();
   if (ms < now - 5 * 365 * 24 * 60 * 60 * 1000) return null;
   if (ms > now + 24 * 60 * 60 * 1000) return null;
@@ -58,28 +89,41 @@ export function parseIsoInstant(value: string | undefined | null): string | null
 }
 
 /**
- * Parses query params into a safe filter. Unknown views fall back to the
- * kitchen default; invalid dates are dropped; inverted/oversized ranges are
- * normalized.
+ * Parses query params into a safe filter. Unknown views fall back to kitchen;
+ * invalid dates are dropped; inverted/oversized ranges are normalized.
  */
 export function parseOrdersFilter(params: {
   view?: string | string[];
+  range?: string | string[];
   from?: string | string[];
   to?: string | string[];
 }): OrdersFilter {
   const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 
   const rawView = first(params.view);
+  const rawRange = first(params.range);
   let fromIso = parseIsoInstant(first(params.from));
   let toIso = parseIsoInstant(first(params.to));
 
-  let view: OrdersView =
-    rawView && (ORDER_VIEWS as readonly string[]).includes(rawView)
-      ? (rawView as OrdersView)
-      : "open";
+  let board: OrderBoardView = DEFAULT_ORDERS_FILTER.board;
+  let range: OrderRangeView = DEFAULT_ORDERS_FILTER.range;
 
-  if (view === "custom" && !fromIso && !toIso) view = "open";
-  if (view !== "custom") {
+  if (rawView && (ORDER_BOARD_VIEWS as readonly string[]).includes(rawView)) {
+    board = rawView as OrderBoardView;
+  } else if (rawView && (LEGACY_ORDER_VIEWS as readonly string[]).includes(rawView)) {
+    const mapped = LEGACY_VIEW_MAP[rawView as LegacyOrdersView];
+    board = mapped.board;
+    range = mapped.range;
+  }
+
+  if (rawRange && (ORDER_RANGE_VIEWS as readonly string[]).includes(rawRange)) {
+    range = rawRange as OrderRangeView;
+  }
+
+  if (range === "custom" && !fromIso && !toIso) {
+    range = "open";
+  }
+  if (range !== "custom") {
     fromIso = null;
     toIso = null;
   }
@@ -94,16 +138,29 @@ export function parseOrdersFilter(params: {
     }
   }
 
-  return { view, fromIso, toIso };
+  return { board, range, fromIso, toIso };
+}
+
+/** Builds the query string fragment for polling / navigation. */
+export function ordersFilterQueryString(filter: OrdersFilter): string {
+  const params = new URLSearchParams();
+  if (filter.board !== "kitchen") params.set("view", filter.board);
+  if (filter.range !== "open") params.set("range", filter.range);
+  if (filter.range === "custom") {
+    if (filter.fromIso) params.set("from", filter.fromIso);
+    if (filter.toIso) params.set("to", filter.toIso);
+  }
+  const qs = params.toString();
+  return qs ? `?${qs}` : "";
 }
 
 /**
- * Time floor applied per view (UTC instants). "today" uses the Europe/Lisbon
+ * Time floor applied per range (UTC instants). "today" uses the Europe/Lisbon
  * day start: the product targets restaurants in Portugal and the kitchen's
  * notion of "today" should follow the local clock, not UTC.
  */
-export function viewTimeFloor(view: OrdersView, now: Date = new Date()): string | null {
-  switch (view) {
+export function rangeTimeFloor(range: OrderRangeView, now: Date = new Date()): string | null {
+  switch (range) {
     case "today":
       return startOfDayInTimeZone(now, "Europe/Lisbon").toISOString();
     case "24h":
@@ -111,6 +168,17 @@ export function viewTimeFloor(view: OrdersView, now: Date = new Date()): string 
     default:
       return null;
   }
+}
+
+/** @deprecated Use rangeTimeFloor */
+export function viewTimeFloor(view: LegacyOrdersView | OrderRangeView, now: Date = new Date()): string | null {
+  if ((ORDER_RANGE_VIEWS as readonly string[]).includes(view)) {
+    return rangeTimeFloor(view as OrderRangeView, now);
+  }
+  if (view === "today" || view === "24h") {
+    return rangeTimeFloor(view, now);
+  }
+  return null;
 }
 
 /**
@@ -137,7 +205,6 @@ export function startOfDayInTimeZone(now: Date, timeZone: string): Date {
   };
 
   const today = partsOf(now);
-  // First guess: local midnight equals UTC midnight.
   let guess = new Date(Date.UTC(today.year, today.month - 1, today.day, 0, 0, 0, 0));
   for (let i = 0; i < 3; i += 1) {
     const seen = partsOf(guess);

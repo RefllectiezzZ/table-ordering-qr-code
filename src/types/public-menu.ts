@@ -1,4 +1,10 @@
 import type {
+  PublicMenuBackgroundMode,
+  PublicMenuBackgroundOverlay,
+  PublicMenuBackgroundPosition,
+  PublicMenuSurfaceStyle,
+} from "@/lib/public-menu/background";
+import type {
   PublicMenuBackgroundStyle,
   PublicMenuCardStyle,
   PublicMenuCartStyle,
@@ -35,6 +41,13 @@ export interface PublicRestaurantBranding {
   publicMenuBackgroundStyle: PublicMenuBackgroundStyle;
   publicMenuCartStyle: PublicMenuCartStyle;
   publicMenuShowImages: boolean;
+  /** Optional atmosphere background (does not override template colors). */
+  publicMenuBackgroundImageUrl: string | null;
+  publicMenuBackgroundMode: PublicMenuBackgroundMode;
+  publicMenuBackgroundPosition: PublicMenuBackgroundPosition;
+  publicMenuBackgroundOverlay: PublicMenuBackgroundOverlay;
+  publicMenuBackgroundOverlayOpacity: number;
+  publicMenuSurfaceStyle: PublicMenuSurfaceStyle;
 }
 
 export interface PublicTableInfo {

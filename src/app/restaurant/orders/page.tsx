@@ -12,7 +12,7 @@ export const metadata = { title: "Pedidos" };
 export default async function RestaurantOrdersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ view?: string; from?: string; to?: string }>;
+  searchParams: Promise<{ view?: string; range?: string; from?: string; to?: string }>;
 }) {
   const session = await requireRestaurantUser();
   const supabase = await createServerSupabaseClient();
@@ -39,13 +39,13 @@ export default async function RestaurantOrdersPage({
       <div className="mb-4">
         <h1 className="text-xl font-bold text-slate-900">Pedidos</h1>
         <p className="text-sm text-slate-500">
-          Atualiza automaticamente. Pedidos pendentes de confirmação aparecem na zona de
-          receção e nunca na cozinha.
+          Atualiza automaticamente. Use Cozinha para preparar pedidos confirmados e Staff
+          para confirmar ou rejeitar primeiros pedidos.
         </p>
       </div>
       {/* Keyed by filter: changing filters remounts the board with fresh server data. */}
       <OrdersBoard
-        key={`${filter.view}:${filter.fromIso ?? ""}:${filter.toIso ?? ""}`}
+        key={`${filter.board}:${filter.range}:${filter.fromIso ?? ""}:${filter.toIso ?? ""}`}
         initialOrders={orders}
         initialFilter={filter}
       />

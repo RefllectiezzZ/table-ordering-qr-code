@@ -6,7 +6,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { nextStatuses, orderDisplayNumber } from "@/lib/orders";
-import type { OrdersFilter, OrdersView } from "@/lib/orders-filters";
+import {
+  ordersFilterQueryString,
+  type OrderBoardView,
+  type OrderRangeView,
+  type OrdersFilter,
+} from "@/lib/orders-filters";
 import { formatCentsToEuro } from "@/lib/money";
 import { cn, formatDateTime, relativeTimePt } from "@/lib/utils";
 import type { DashboardOrder } from "@/server/dashboard-orders";
@@ -38,14 +43,17 @@ const STATUS_ACTION_LABEL: Record<OrderStatus, string> = {
 };
 
 const KITCHEN_COLUMNS: OrderStatus[] = ["new", "preparing", "ready"];
-const HISTORY_STATUSES: OrderStatus[] = ["delivered", "cancelled", "rejected"];
+const BOARD_TABS: { board: OrderBoardView; label: string }[] = [
+  { board: "kitchen", label: "Cozinha" },
+  { board: "staff", label: "Staff" },
+  { board: "history", label: "Histórico" },
+];
 
-const QUICK_FILTERS: { view: OrdersView; label: string }[] = [
-  { view: "open", label: "Em curso" },
-  { view: "pending", label: "Por confirmar" },
-  { view: "today", label: "Hoje" },
-  { view: "24h", label: "Últimas 24 h" },
-  { view: "all", label: "Todos" },
+const RANGE_FILTERS: { range: OrderRangeView; label: string }[] = [
+  { range: "open", label: "Em curso" },
+  { range: "today", label: "Hoje" },
+  { range: "24h", label: "Últimas 24 h" },
+  { range: "all", label: "Todos" },
 ];
 
 function isoToLocalDate(iso: string | null): string {
@@ -60,48 +68,60 @@ function isoToLocalTime(iso: string | null): string {
   return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 }
 
-function FilterBar({ filter }: { filter: OrdersFilter }) {
+function FilterBar({
+  filter,
+  onBoardChange,
+}: {
+  filter: OrdersFilter;
+  onBoardChange: (board: OrderBoardView) => void;
+}) {
   const router = useRouter();
-  const [showCustom, setShowCustom] = useState(filter.view === "custom");
+  const [showCustom, setShowCustom] = useState(filter.range === "custom");
   const [fromDate, setFromDate] = useState(isoToLocalDate(filter.fromIso));
   const [fromTime, setFromTime] = useState(isoToLocalTime(filter.fromIso));
   const [toDate, setToDate] = useState(isoToLocalDate(filter.toIso));
   const [toTime, setToTime] = useState(isoToLocalTime(filter.toIso));
 
-  function applyView(view: OrdersView) {
-    router.replace(view === "open" ? "/restaurant/orders" : `/restaurant/orders?view=${view}`);
+  function navigate(next: OrdersFilter) {
+    router.replace(`/restaurant/orders${ordersFilterQueryString(next)}`);
+  }
+
+  function applyRange(range: OrderRangeView) {
+    navigate({ ...filter, range, fromIso: null, toIso: null });
   }
 
   function applyCustomRange(event: React.FormEvent) {
     event.preventDefault();
-    const params = new URLSearchParams({ view: "custom" });
-    if (fromDate) {
-      const from = new Date(`${fromDate}T${fromTime || "00:00"}`);
-      if (!Number.isNaN(from.getTime())) params.set("from", from.toISOString());
-    }
-    if (toDate) {
-      const to = new Date(`${toDate}T${toTime || "23:59"}`);
-      if (!Number.isNaN(to.getTime())) params.set("to", to.toISOString());
-    }
-    if (!params.has("from") && !params.has("to")) return;
-    router.replace(`/restaurant/orders?${params.toString()}`);
+    const fromIso = fromDate
+      ? new Date(`${fromDate}T${fromTime || "00:00"}`).toISOString()
+      : null;
+    const toIso = toDate
+      ? new Date(`${toDate}T${toTime || "23:59"}`).toISOString()
+      : null;
+    if (!fromIso && !toIso) return;
+    navigate({ ...filter, range: "custom", fromIso, toIso });
   }
 
   const dateInputClasses =
     "rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-900";
 
   return (
-    <div className="mb-5 rounded-xl border border-slate-200 bg-white p-3">
-      <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Filtro">
-        {QUICK_FILTERS.map(({ view, label }) => (
+    <div className="mb-5 space-y-3">
+      <div
+        className="flex flex-wrap gap-1.5 rounded-xl border border-slate-200 bg-white p-2"
+        role="tablist"
+        aria-label="Vista de pedidos"
+      >
+        {BOARD_TABS.map(({ board, label }) => (
           <button
-            key={view}
+            key={board}
             type="button"
-            onClick={() => applyView(view)}
-            aria-pressed={filter.view === view}
+            role="tab"
+            aria-selected={filter.board === board}
+            onClick={() => onBoardChange(board)}
             className={cn(
-              "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
-              filter.view === view
+              "rounded-lg px-4 py-2 text-sm font-semibold transition-colors",
+              filter.board === board
                 ? "bg-slate-900 text-white"
                 : "bg-slate-100 text-slate-600 hover:bg-slate-200",
             )}
@@ -109,62 +129,83 @@ function FilterBar({ filter }: { filter: OrdersFilter }) {
             {label}
           </button>
         ))}
-        <button
-          type="button"
-          onClick={() => setShowCustom((v) => !v)}
-          aria-pressed={filter.view === "custom"}
-          className={cn(
-            "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
-            filter.view === "custom"
-              ? "bg-slate-900 text-white"
-              : "bg-slate-100 text-slate-600 hover:bg-slate-200",
-          )}
-        >
-          Data e hora…
-        </button>
       </div>
 
-      {showCustom ? (
-        <form onSubmit={applyCustomRange} className="mt-3 flex flex-wrap items-end gap-2">
-          <label className="text-xs text-slate-600">
-            De
-            <div className="mt-1 flex gap-1.5">
-              <input
-                type="date"
-                value={fromDate}
-                onChange={(e) => setFromDate(e.target.value)}
-                className={dateInputClasses}
-              />
-              <input
-                type="time"
-                value={fromTime}
-                onChange={(e) => setFromTime(e.target.value)}
-                className={dateInputClasses}
-              />
-            </div>
-          </label>
-          <label className="text-xs text-slate-600">
-            Até
-            <div className="mt-1 flex gap-1.5">
-              <input
-                type="date"
-                value={toDate}
-                onChange={(e) => setToDate(e.target.value)}
-                className={dateInputClasses}
-              />
-              <input
-                type="time"
-                value={toTime}
-                onChange={(e) => setToTime(e.target.value)}
-                className={dateInputClasses}
-              />
-            </div>
-          </label>
-          <Button type="submit" size="sm">
-            Aplicar período
-          </Button>
-        </form>
-      ) : null}
+      <div className="rounded-xl border border-slate-200 bg-white p-3">
+        <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Período">
+          {RANGE_FILTERS.map(({ range, label }) => (
+            <button
+              key={range}
+              type="button"
+              onClick={() => applyRange(range)}
+              aria-pressed={filter.range === range}
+              className={cn(
+                "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+                filter.range === range
+                  ? "bg-slate-900 text-white"
+                  : "bg-slate-100 text-slate-600 hover:bg-slate-200",
+              )}
+            >
+              {label}
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={() => setShowCustom((v) => !v)}
+            aria-pressed={filter.range === "custom"}
+            className={cn(
+              "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+              filter.range === "custom"
+                ? "bg-slate-900 text-white"
+                : "bg-slate-100 text-slate-600 hover:bg-slate-200",
+            )}
+          >
+            Data e hora…
+          </button>
+        </div>
+
+        {showCustom ? (
+          <form onSubmit={applyCustomRange} className="mt-3 flex flex-wrap items-end gap-2">
+            <label className="text-xs text-slate-600">
+              De
+              <div className="mt-1 flex gap-1.5">
+                <input
+                  type="date"
+                  value={fromDate}
+                  onChange={(e) => setFromDate(e.target.value)}
+                  className={dateInputClasses}
+                />
+                <input
+                  type="time"
+                  value={fromTime}
+                  onChange={(e) => setFromTime(e.target.value)}
+                  className={dateInputClasses}
+                />
+              </div>
+            </label>
+            <label className="text-xs text-slate-600">
+              Até
+              <div className="mt-1 flex gap-1.5">
+                <input
+                  type="date"
+                  value={toDate}
+                  onChange={(e) => setToDate(e.target.value)}
+                  className={dateInputClasses}
+                />
+                <input
+                  type="time"
+                  value={toTime}
+                  onChange={(e) => setToTime(e.target.value)}
+                  className={dateInputClasses}
+                />
+              </div>
+            </label>
+            <Button type="submit" size="sm">
+              Aplicar período
+            </Button>
+          </form>
+        ) : null}
+      </div>
     </div>
   );
 }
@@ -237,10 +278,8 @@ function OrderCard({
 }
 
 /**
- * Order board: reception queue (pending confirmations) + kitchen columns
- * (new / preparing / ready, oldest first) + low-prominence history. Polls
- * GET /api/restaurant/orders with the current URL filter. Buttons disable
- * while a request is in flight so a double tap never fires twice.
+ * Order board with Kitchen / Staff / History tabs. Polls GET /api/restaurant/orders
+ * with the current URL filter. Buttons disable while a request is in flight.
  */
 export function OrdersBoard({
   initialOrders,
@@ -249,21 +288,14 @@ export function OrdersBoard({
   initialOrders: DashboardOrder[];
   initialFilter: OrdersFilter;
 }) {
+  const router = useRouter();
   const [orders, setOrders] = useState<DashboardOrder[]>(initialOrders);
   const [updating, setUpdating] = useState<string | null>(null);
   const [pollError, setPollError] = useState(false);
-  const [showHistory, setShowHistory] = useState(false);
   const knownIdsRef = useRef<Set<string>>(new Set(initialOrders.map((o) => o.id)));
   const [freshIds, setFreshIds] = useState<Set<string>>(new Set());
 
-  const filterQuery = useMemo(() => {
-    const params = new URLSearchParams();
-    if (initialFilter.view !== "open") params.set("view", initialFilter.view);
-    if (initialFilter.fromIso) params.set("from", initialFilter.fromIso);
-    if (initialFilter.toIso) params.set("to", initialFilter.toIso);
-    const qs = params.toString();
-    return qs ? `?${qs}` : "";
-  }, [initialFilter]);
+  const filterQuery = useMemo(() => ordersFilterQueryString(initialFilter), [initialFilter]);
 
   const refresh = useCallback(async () => {
     try {
@@ -340,32 +372,50 @@ export function OrdersBoard({
     void postAction(orderId, `/api/restaurant/orders/${orderId}/reject`);
   }
 
+  function changeBoard(board: OrderBoardView) {
+    router.replace(
+      `/restaurant/orders${ordersFilterQueryString({ ...initialFilter, board })}`,
+    );
+  }
+
   const byOldest = (a: DashboardOrder, b: DashboardOrder) =>
     a.createdAt.localeCompare(b.createdAt);
 
-  const pending = orders.filter((o) => o.status === "pending_confirmation").sort(byOldest);
-  const kitchen = orders.filter((o) =>
-    (KITCHEN_COLUMNS as string[]).includes(o.status),
-  );
-  const history = orders
-    .filter((o) => (HISTORY_STATUSES as string[]).includes(o.status))
+  const pending = orders
+    .filter((o) => o.status === "pending_confirmation")
+    .sort(byOldest);
+  const staffSecondary = orders
+    .filter((o) => o.status === "rejected" || o.status === "cancelled")
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const kitchen = orders.filter((o) => (KITCHEN_COLUMNS as string[]).includes(o.status));
+  const history = orders.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
-  const isPendingOnly = initialFilter.view === "pending";
+  const board = initialFilter.board;
+
+  const emptyTitle =
+    board === "staff"
+      ? "Sem pedidos por confirmar"
+      : board === "history"
+        ? "Sem pedidos no histórico"
+        : initialFilter.range === "custom" ||
+            initialFilter.range === "today" ||
+            initialFilter.range === "24h"
+          ? "Sem pedidos neste período"
+          : "Sem pedidos para preparar";
 
   if (orders.length === 0) {
     return (
       <div>
-        <FilterBar filter={initialFilter} />
+        <FilterBar filter={initialFilter} onBoardChange={changeBoard} />
         <EmptyState
-          title={
-            initialFilter.view === "custom" || initialFilter.view === "today" || initialFilter.view === "24h"
-              ? "Sem pedidos neste período"
-              : initialFilter.view === "pending"
-                ? "Sem pedidos por confirmar"
-                : "Sem pedidos em aberto"
+          title={emptyTitle}
+          description={
+            board === "kitchen"
+              ? "A cozinha vê apenas pedidos confirmados."
+              : board === "staff"
+                ? "Confirme apenas se a mesa estiver realmente ocupada por estes clientes."
+                : "Os pedidos entregues, cancelados e rejeitados aparecem aqui."
           }
-          description="Os pedidos feitos pelos QR codes das mesas aparecem aqui automaticamente."
         />
       </div>
     );
@@ -373,18 +423,25 @@ export function OrdersBoard({
 
   return (
     <div>
-      <FilterBar filter={initialFilter} />
+      <FilterBar filter={initialFilter} onBoardChange={changeBoard} />
 
       <div className="mb-4 flex flex-wrap items-center gap-3 text-sm text-slate-500">
-        <span>
-          <strong className="text-slate-900">{kitchen.length}</strong> em cozinha
-        </span>
-        <span>
-          <strong className={pending.length > 0 ? "text-violet-700" : "text-slate-900"}>
-            {pending.length}
-          </strong>{" "}
-          por confirmar
-        </span>
+        {board === "kitchen" ? (
+          <span>
+            <strong className="text-slate-900">{kitchen.length}</strong> para preparar
+          </span>
+        ) : board === "staff" ? (
+          <span>
+            <strong className={pending.length > 0 ? "text-violet-700" : "text-slate-900"}>
+              {pending.length}
+            </strong>{" "}
+            por confirmar
+          </span>
+        ) : (
+          <span>
+            <strong className="text-slate-900">{history.length}</strong> no histórico
+          </span>
+        )}
         {pollError ? (
           <span className="rounded bg-amber-100 px-2 py-0.5 text-xs text-amber-800">
             Problema de ligação — a tentar novamente…
@@ -392,60 +449,91 @@ export function OrdersBoard({
         ) : null}
       </div>
 
-      {/* Reception: pending confirmations */}
-      <section aria-label="Por confirmar" className="mb-6">
-        <h2 className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-violet-700">
-          Receção · por confirmar
-          <span className="rounded-full bg-violet-100 px-1.5 text-[11px] text-violet-700">
-            {pending.length}
-          </span>
-        </h2>
-        {pending.length === 0 ? (
-          <p className="rounded-lg border border-dashed border-slate-200 bg-white/60 p-3 text-xs text-slate-400">
-            Sem pedidos por confirmar.
-          </p>
-        ) : (
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {pending.map((order) => (
-              <OrderCard
-                key={order.id}
-                order={order}
-                fresh={freshIds.has(order.id)}
-                busy={updating === order.id}
-              >
-                <p className="mb-3 rounded-lg bg-violet-50 p-2 text-xs text-violet-900">
-                  Primeiro pedido deste dispositivo. Confirme que a mesa está mesmo ocupada
-                  por estes clientes antes de enviar para a cozinha.
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    size="sm"
-                    disabled={updating === order.id}
-                    onClick={() => void confirmOrder(order.id)}
-                  >
-                    Confirmar
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="danger"
-                    disabled={updating === order.id}
-                    onClick={() => rejectOrder(order.id)}
-                  >
-                    Rejeitar
-                  </Button>
-                </div>
-              </OrderCard>
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* Kitchen board */}
-      {!isPendingOnly ? (
-        <section aria-label="Cozinha" className="mb-6">
-          <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Cozinha · pedidos confirmados (mais antigos primeiro)
+      {board === "staff" ? (
+        <section aria-label="Pedidos por confirmar" className="mb-6">
+          <h2 className="mb-1 text-xs font-semibold uppercase tracking-wide text-violet-700">
+            Pedidos por confirmar
           </h2>
+          <p className="mb-3 text-xs text-slate-500">
+            Confirme apenas se a mesa estiver realmente ocupada por estes clientes.
+          </p>
+          {pending.length === 0 ? (
+            <p className="rounded-lg border border-dashed border-slate-200 bg-white/60 p-3 text-xs text-slate-400">
+              Sem pedidos por confirmar.
+            </p>
+          ) : (
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {pending.map((order) => (
+                <OrderCard
+                  key={order.id}
+                  order={order}
+                  fresh={freshIds.has(order.id)}
+                  busy={updating === order.id}
+                >
+                  <p className="mb-3 rounded-lg bg-violet-50 p-2 text-xs text-violet-900">
+                    Primeiro pedido deste dispositivo. Confirme que a mesa está mesmo ocupada
+                    por estes clientes antes de enviar para a cozinha.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      disabled={updating === order.id}
+                      onClick={() => void confirmOrder(order.id)}
+                    >
+                      Confirmar
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="danger"
+                      disabled={updating === order.id}
+                      onClick={() => rejectOrder(order.id)}
+                    >
+                      Rejeitar
+                    </Button>
+                  </div>
+                </OrderCard>
+              ))}
+            </div>
+          )}
+
+          {staffSecondary.length > 0 ? (
+            <div className="mt-6">
+              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                Rejeitados / cancelados recentes
+              </h3>
+              <ul className="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white">
+                {staffSecondary.map((order) => (
+                  <li
+                    key={order.id}
+                    className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 text-sm"
+                  >
+                    <span className="flex items-center gap-2">
+                      <span className="font-semibold text-slate-700">
+                        {order.tableLabel ?? `Mesa ${order.tableNumber}`}
+                      </span>
+                      <Badge tone={STATUS_META[order.status].tone}>
+                        {STATUS_META[order.status].label}
+                      </Badge>
+                    </span>
+                    <span className="text-xs text-slate-400">
+                      {formatDateTime(order.createdAt)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+        </section>
+      ) : null}
+
+      {board === "kitchen" ? (
+        <section aria-label="Pedidos para preparar" className="mb-6">
+          <h2 className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Pedidos para preparar
+          </h2>
+          <p className="mb-3 text-xs text-slate-500">
+            A cozinha vê apenas pedidos confirmados.
+          </p>
           {kitchen.length === 0 ? (
             <EmptyState
               title="Sem pedidos em aberto"
@@ -503,42 +591,31 @@ export function OrdersBoard({
         </section>
       ) : null}
 
-      {/* History: low prominence */}
-      {!isPendingOnly && history.length > 0 ? (
+      {board === "history" ? (
         <section aria-label="Histórico">
-          <button
-            type="button"
-            onClick={() => setShowHistory((v) => !v)}
-            className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-400 hover:text-slate-600"
-          >
-            Histórico · entregues / cancelados / rejeitados ({history.length})
-            <span aria-hidden>{showHistory ? "▾" : "▸"}</span>
-          </button>
-          {showHistory ? (
-            <ul className="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white">
-              {history.map((order) => (
-                <li
-                  key={order.id}
-                  className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 text-sm"
-                >
-                  <span className="flex items-center gap-2">
-                    <span className="font-semibold text-slate-700">
-                      {order.tableLabel ?? `Mesa ${order.tableNumber}`}
-                    </span>
-                    <span className="text-slate-500">
-                      Pedido {orderDisplayNumber(order.orderNumber, order.id)}
-                    </span>
-                    <Badge tone={STATUS_META[order.status].tone}>
-                      {STATUS_META[order.status].label}
-                    </Badge>
+          <ul className="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white">
+            {history.map((order) => (
+              <li
+                key={order.id}
+                className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 text-sm"
+              >
+                <span className="flex items-center gap-2">
+                  <span className="font-semibold text-slate-700">
+                    {order.tableLabel ?? `Mesa ${order.tableNumber}`}
                   </span>
-                  <span className="text-xs text-slate-400">
-                    {formatDateTime(order.createdAt)} · {formatCentsToEuro(order.totalCents)}
+                  <span className="text-slate-500">
+                    Pedido {orderDisplayNumber(order.orderNumber, order.id)}
                   </span>
-                </li>
-              ))}
-            </ul>
-          ) : null}
+                  <Badge tone={STATUS_META[order.status].tone}>
+                    {STATUS_META[order.status].label}
+                  </Badge>
+                </span>
+                <span className="text-xs text-slate-400">
+                  {formatDateTime(order.createdAt)} · {formatCentsToEuro(order.totalCents)}
+                </span>
+              </li>
+            ))}
+          </ul>
         </section>
       ) : null}
     </div>

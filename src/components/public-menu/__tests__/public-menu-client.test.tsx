@@ -34,6 +34,12 @@ function menuData(overrides?: {
       publicMenuBackgroundStyle: "soft_gradient",
       publicMenuCartStyle: "floating_glass",
       publicMenuShowImages: true,
+      publicMenuBackgroundImageUrl: null,
+      publicMenuBackgroundMode: "cover",
+      publicMenuBackgroundPosition: "center",
+      publicMenuBackgroundOverlay: "light",
+      publicMenuBackgroundOverlayOpacity: 60,
+      publicMenuSurfaceStyle: "solid",
     },
     table: { tableNumber: "4", label: "Mesa 4" },
     opening:
@@ -145,4 +151,22 @@ describe("PublicMenuClient (SSR smoke)", () => {
     const html = renderToString(<PublicMenuClient data={data} />);
     expect(html).toContain('data-template="brunch_editorial"');
   });
+
+  it("renders with a configured background image without crashing", () => {
+    const data = menuData();
+    data.restaurant.publicMenuBackgroundImageUrl = "https://cdn.example.com/bg.webp";
+    data.restaurant.publicMenuBackgroundMode = "cover";
+    data.restaurant.publicMenuSurfaceStyle = "glass";
+    const html = renderToString(<PublicMenuClient data={data} />);
+    expect(html).toContain("Tasca do Rio");
+    expect(html).toContain("cdn.example.com/bg.webp");
+  });
+
+  it("does not embed client order tokens in SSR markup", () => {
+    const html = renderToString(<PublicMenuClient data={menuData()} />);
+    expect(html).not.toMatch(
+      /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i,
+    );
+  });
 });
+

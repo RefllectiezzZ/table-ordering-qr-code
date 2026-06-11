@@ -138,6 +138,10 @@ export const ordersAvailabilitySchema = z.object({
   paused_message: optionalShortText(300),
 });
 
+export const orderConfirmationSchema = z.object({
+  require_order_confirmation: z.boolean(),
+});
+
 // ---------------------------------------------------------------------------
 // Restaurant: opening hours
 // One interval per weekday; closes_at <= opens_at means overnight (the
@@ -342,6 +346,26 @@ const publicMenuBackgroundStyleSchema = z.enum([
   "bold_blocks",
 ]);
 const publicMenuCartStyleSchema = z.enum(["floating_glass", "bottom_bar", "drawer_card"]);
+const publicMenuBackgroundModeSchema = z.enum([
+  "cover",
+  "repeat",
+  "pattern",
+  "blurred_cover",
+]);
+const publicMenuBackgroundPositionSchema = z.enum(["center", "top", "bottom"]);
+const publicMenuBackgroundOverlaySchema = z.enum([
+  "none",
+  "light",
+  "dark",
+  "brand_tint",
+  "cream",
+]);
+const publicMenuSurfaceStyleSchema = z.enum([
+  "solid",
+  "glass",
+  "paper",
+  "dark_translucent",
+]);
 
 /** Platform admin branding + public menu template settings for any restaurant. */
 export const adminBrandingUpdateSchema = z
@@ -361,6 +385,13 @@ export const adminBrandingUpdateSchema = z
     public_menu_background_style: publicMenuBackgroundStyleSchema.optional(),
     public_menu_cart_style: publicMenuCartStyleSchema.optional(),
     public_menu_show_images: z.boolean().optional(),
+    public_menu_background_image_url: optionalHttpUrl,
+    public_menu_background_mode: publicMenuBackgroundModeSchema.optional(),
+    public_menu_background_position: publicMenuBackgroundPositionSchema.optional(),
+    public_menu_background_overlay: publicMenuBackgroundOverlaySchema.optional(),
+    public_menu_background_overlay_opacity: z.number().int().min(0).max(90).optional(),
+    public_menu_surface_style: publicMenuSurfaceStyleSchema.optional(),
+    require_order_confirmation: z.boolean().optional(),
   })
   .refine(
     (data) =>

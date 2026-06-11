@@ -1,6 +1,7 @@
 import "server-only";
 
 import { evaluateOpeningHours } from "@/lib/opening-hours";
+import { resolvePublicMenuBackground } from "@/lib/public-menu/background";
 import { resolvePublicMenuTheme } from "@/lib/public-menu/templates";
 import { isValidPublicTokenFormat } from "@/lib/security/tokens";
 import { createServiceRoleSupabaseClient } from "@/lib/supabase/service-role";
@@ -42,6 +43,12 @@ interface PublicRestaurantRow {
   public_menu_background_style: string;
   public_menu_cart_style: string;
   public_menu_show_images: boolean;
+  public_menu_background_image_url: string | null;
+  public_menu_background_mode: string;
+  public_menu_background_position: string;
+  public_menu_background_overlay: string;
+  public_menu_background_overlay_opacity: number;
+  public_menu_surface_style: string;
 }
 
 /**
@@ -71,7 +78,7 @@ export async function resolvePublicMenu(token: string): Promise<PublicMenuResolu
   const { data: restaurant } = await supabase
     .from("restaurants")
     .select(
-      "id, name, status, logo_url, cover_image_url, primary_color, secondary_color, background_color, welcome_message, default_language, enabled_languages, accepts_orders, paused_message, timezone, public_menu_template, public_menu_density, public_menu_card_style, public_menu_hero_style, public_menu_background_style, public_menu_cart_style, public_menu_show_images",
+      "id, name, status, logo_url, cover_image_url, primary_color, secondary_color, background_color, welcome_message, default_language, enabled_languages, accepts_orders, paused_message, timezone, public_menu_template, public_menu_density, public_menu_card_style, public_menu_hero_style, public_menu_background_style, public_menu_cart_style, public_menu_show_images, public_menu_background_image_url, public_menu_background_mode, public_menu_background_position, public_menu_background_overlay, public_menu_background_overlay_opacity, public_menu_surface_style",
     )
     .eq("id", table.restaurant_id)
     .maybeSingle<PublicRestaurantRow>();
@@ -196,6 +203,14 @@ export async function resolvePublicMenu(token: string): Promise<PublicMenuResolu
     public_menu_cart_style: restaurant.public_menu_cart_style,
     public_menu_show_images: restaurant.public_menu_show_images,
   });
+  const background = resolvePublicMenuBackground({
+    public_menu_background_image_url: restaurant.public_menu_background_image_url,
+    public_menu_background_mode: restaurant.public_menu_background_mode,
+    public_menu_background_position: restaurant.public_menu_background_position,
+    public_menu_background_overlay: restaurant.public_menu_background_overlay,
+    public_menu_background_overlay_opacity: restaurant.public_menu_background_overlay_opacity,
+    public_menu_surface_style: restaurant.public_menu_surface_style,
+  });
 
   return {
     state: "ok",
@@ -220,6 +235,12 @@ export async function resolvePublicMenu(token: string): Promise<PublicMenuResolu
         publicMenuBackgroundStyle: theme.backgroundStyle,
         publicMenuCartStyle: theme.cartStyle,
         publicMenuShowImages: theme.showImages,
+        publicMenuBackgroundImageUrl: background.imageUrl,
+        publicMenuBackgroundMode: background.mode,
+        publicMenuBackgroundPosition: background.position,
+        publicMenuBackgroundOverlay: background.overlay,
+        publicMenuBackgroundOverlayOpacity: background.overlayOpacity,
+        publicMenuSurfaceStyle: background.surfaceStyle,
       },
       table: {
         tableNumber: table.table_number,

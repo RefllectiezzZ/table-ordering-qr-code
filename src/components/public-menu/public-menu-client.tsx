@@ -3,6 +3,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PUBLIC_MENU_STRINGS } from "@/lib/i18n";
 import {
+  applySurfaceStyleToTokens,
+  buildPublicMenuPageShellStyles,
+  resolvePublicMenuBackground,
+} from "@/lib/public-menu/background";
+import {
   getPublicMenuTemplateTokens,
   resolvePublicMenuTheme,
 } from "@/lib/public-menu/templates";
@@ -38,13 +43,32 @@ export function PublicMenuClient({ data }: { data: PublicMenuData }) {
     public_menu_cart_style: restaurant.publicMenuCartStyle,
     public_menu_show_images: restaurant.publicMenuShowImages,
   });
-  const tokens = getPublicMenuTemplateTokens(theme);
+  const baseTokens = getPublicMenuTemplateTokens(theme);
+  const background = resolvePublicMenuBackground({
+    public_menu_background_image_url: restaurant.publicMenuBackgroundImageUrl,
+    public_menu_background_mode: restaurant.publicMenuBackgroundMode,
+    public_menu_background_position: restaurant.publicMenuBackgroundPosition,
+    public_menu_background_overlay: restaurant.publicMenuBackgroundOverlay,
+    public_menu_background_overlay_opacity: restaurant.publicMenuBackgroundOverlayOpacity,
+    public_menu_surface_style: restaurant.publicMenuSurfaceStyle,
+  });
+  const tokens = applySurfaceStyleToTokens(
+    baseTokens,
+    background.surfaceStyle,
+    baseTokens.isDark,
+  );
+  const shellStyles = buildPublicMenuPageShellStyles(
+    tokens.pageBackground,
+    background,
+    restaurant.primaryColor,
+  );
 
   const [language, setLanguage] = useState<Language>(restaurant.defaultLanguage);
   const [view, setView] = useState<PublicMenuView>("menu");
   const [cart, setCart] = useState<CartLine[]>([]);
   const [orderNote, setOrderNote] = useState("");
-  const [clientOrderToken, setClientOrderToken] = useState(() => crypto.randomUUID());
+  /** Idempotency token — ref only so SSR/hydration markup stays stable. */
+  const clientOrderTokenRef = useRef<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [activeOrder, setActiveOrder] = useState<ActiveOrder | null>(null);
@@ -134,6 +158,10 @@ export function PublicMenuClient({ data }: { data: PublicMenuData }) {
   );
 
   useEffect(() => {
+    clientOrderTokenRef.current = crypto.randomUUID();
+  }, []);
+
+  useEffect(() => {
     const stored = readStorage(lastOrderStorageKey(data.token));
     if (!stored) return;
     activeOrderTokenRef.current = stored;
@@ -207,13 +235,15 @@ export function PublicMenuClient({ data }: { data: PublicMenuData }) {
     setSubmitError(null);
 
     try {
+      const orderToken = clientOrderTokenRef.current ?? crypto.randomUUID();
+      clientOrderTokenRef.current = orderToken;
       const sessionToken = readStorage(sessionStorageKey(data.token));
       const response = await fetch("/api/public/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           table_token: data.token,
-          client_order_token: clientOrderToken,
+          client_order_token: orderToken,
           session_token: sessionToken ?? undefined,
           customer_note: orderNote.trim() || undefined,
           items: cart.map((line) => ({
@@ -257,8 +287,8 @@ export function PublicMenuClient({ data }: { data: PublicMenuData }) {
         setSessionEnded(true);
       }
 
-      activeOrderTokenRef.current = clientOrderToken;
-      writeStorage(lastOrderStorageKey(data.token), clientOrderToken);
+      activeOrderTokenRef.current = orderToken;
+      writeStorage(lastOrderStorageKey(data.token), orderToken);
       setActiveOrder({
         shortCode: payload.order.short_code,
         orderNumber: payload.order.order_number,
@@ -267,7 +297,7 @@ export function PublicMenuClient({ data }: { data: PublicMenuData }) {
       });
       setCart([]);
       setOrderNote("");
-      setClientOrderToken(crypto.randomUUID());
+      clientOrderTokenRef.current = crypto.randomUUID();
       setView("status");
     } catch {
       setSubmitError(t.orderFailed);
@@ -295,10 +325,25 @@ export function PublicMenuClient({ data }: { data: PublicMenuData }) {
 
   return (
     <main
-      className={`min-h-screen flex-1 overflow-x-hidden ${bottomPadding}`}
-      style={{ background: tokens.pageBackground } as React.CSSProperties}
+      className={`relative min-h-screen flex-1 overflow-x-hidden ${bottomPadding}`}
+      style={shellStyles.root}
       data-template={theme.template}
     >
+      {shellStyles.backdrop ? (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 -z-20"
+          style={shellStyles.backdrop}
+        />
+      ) : null}
+      {shellStyles.overlay ? (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 -z-10"
+          style={shellStyles.overlay}
+        />
+      ) : null}
+      <div className="relative z-0">
       <PublicMenuHero
         restaurant={restaurant}
         tableDisplay={tableDisplay}
@@ -453,6 +498,7 @@ export function PublicMenuClient({ data }: { data: PublicMenuData }) {
           onViewCart={() => setView("cart")}
         />
       ) : null}
+      </div>
     </main>
   );
 }

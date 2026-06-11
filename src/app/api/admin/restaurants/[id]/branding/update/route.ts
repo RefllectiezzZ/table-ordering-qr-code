@@ -56,6 +56,27 @@ export async function POST(
   if (d.public_menu_show_images !== undefined) {
     fieldUpdates.public_menu_show_images = d.public_menu_show_images;
   }
+  if (d.public_menu_background_image_url !== undefined) {
+    fieldUpdates.public_menu_background_image_url = d.public_menu_background_image_url;
+  }
+  if (d.public_menu_background_mode !== undefined) {
+    fieldUpdates.public_menu_background_mode = d.public_menu_background_mode;
+  }
+  if (d.public_menu_background_position !== undefined) {
+    fieldUpdates.public_menu_background_position = d.public_menu_background_position;
+  }
+  if (d.public_menu_background_overlay !== undefined) {
+    fieldUpdates.public_menu_background_overlay = d.public_menu_background_overlay;
+  }
+  if (d.public_menu_background_overlay_opacity !== undefined) {
+    fieldUpdates.public_menu_background_overlay_opacity = d.public_menu_background_overlay_opacity;
+  }
+  if (d.public_menu_surface_style !== undefined) {
+    fieldUpdates.public_menu_surface_style = d.public_menu_surface_style;
+  }
+  if (d.require_order_confirmation !== undefined) {
+    fieldUpdates.require_order_confirmation = d.require_order_confirmation;
+  }
 
   if (Object.keys(fieldUpdates).length === 0) {
     return NextResponse.json({ error: "Nothing to update" }, { status: 400 });

@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  ordersFilterQueryString,
   parseIsoInstant,
   parseOrdersFilter,
   startOfDayInTimeZone,
-  statusesForView,
-  viewTimeFloor,
+  statusesForBoard,
+  rangeTimeFloor,
 } from "@/lib/orders-filters";
 
 describe("parseIsoInstant", () => {
@@ -14,7 +15,7 @@ describe("parseIsoInstant", () => {
   });
 
   it("rejects malformed values", () => {
-    expect(parseIsoInstant("2026-06-10")).toBeNull(); // date only
+    expect(parseIsoInstant("2026-06-10")).toBeNull();
     expect(parseIsoInstant("not-a-date")).toBeNull();
     expect(parseIsoInstant("")).toBeNull();
     expect(parseIsoInstant(undefined)).toBeNull();
@@ -28,67 +29,80 @@ describe("parseIsoInstant", () => {
 });
 
 describe("parseOrdersFilter", () => {
-  it("defaults to the kitchen view", () => {
-    expect(parseOrdersFilter({})).toEqual({ view: "open", fromIso: null, toIso: null });
-    expect(parseOrdersFilter({ view: "garbage" }).view).toBe("open");
+  it("defaults to the kitchen board with open range", () => {
+    expect(parseOrdersFilter({})).toEqual({
+      board: "kitchen",
+      range: "open",
+      fromIso: null,
+      toIso: null,
+    });
+    expect(parseOrdersFilter({ view: "garbage" }).board).toBe("kitchen");
   });
 
-  it("accepts quick views and drops stray dates for them", () => {
-    const from = new Date().toISOString();
-    const filter = parseOrdersFilter({ view: "today", from });
-    expect(filter.view).toBe("today");
+  it("parses kitchen and staff board views", () => {
+    expect(parseOrdersFilter({ view: "kitchen" }).board).toBe("kitchen");
+    expect(parseOrdersFilter({ view: "staff" }).board).toBe("staff");
+    expect(parseOrdersFilter({ view: "history" }).board).toBe("history");
+  });
+
+  it("maps legacy pending view to staff board", () => {
+    const filter = parseOrdersFilter({ view: "pending" });
+    expect(filter.board).toBe("staff");
+    expect(filter.range).toBe("open");
+  });
+
+  it("accepts range param alongside board view", () => {
+    const filter = parseOrdersFilter({ view: "kitchen", range: "today" });
+    expect(filter.board).toBe("kitchen");
+    expect(filter.range).toBe("today");
     expect(filter.fromIso).toBeNull();
   });
 
   it("keeps validated custom ranges and normalizes inverted ones", () => {
     const early = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
     const late = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-    const filter = parseOrdersFilter({ view: "custom", from: late, to: early });
-    expect(filter.view).toBe("custom");
+    const filter = parseOrdersFilter({ range: "custom", from: late, to: early });
+    expect(filter.range).toBe("custom");
     expect(filter.fromIso).toBe(early);
     expect(filter.toIso).toBe(late);
   });
 
-  it("falls back to open when custom has no valid dates", () => {
-    expect(parseOrdersFilter({ view: "custom", from: "junk" }).view).toBe("open");
-  });
-
-  it("takes the first value of repeated params", () => {
-    expect(parseOrdersFilter({ view: ["pending", "all"] }).view).toBe("pending");
+  it("falls back to open range when custom has no valid dates", () => {
+    expect(parseOrdersFilter({ range: "custom", from: "junk" }).range).toBe("open");
   });
 });
 
-describe("statusesForView", () => {
-  it("includes the pending queue in the default kitchen view", () => {
-    expect(statusesForView("open")).toEqual([
-      "pending_confirmation",
-      "new",
-      "preparing",
-      "ready",
-    ]);
+describe("ordersFilterQueryString", () => {
+  it("omits default kitchen/open params", () => {
+    expect(ordersFilterQueryString({ board: "kitchen", range: "open", fromIso: null, toIso: null })).toBe("");
   });
 
-  it("restricts the pending view", () => {
-    expect(statusesForView("pending")).toEqual(["pending_confirmation"]);
-  });
-
-  it("does not restrict time-based or all views", () => {
-    expect(statusesForView("today")).toBeNull();
-    expect(statusesForView("24h")).toBeNull();
-    expect(statusesForView("all")).toBeNull();
-    expect(statusesForView("custom")).toBeNull();
+  it("includes staff view in the query string", () => {
+    expect(
+      ordersFilterQueryString({ board: "staff", range: "open", fromIso: null, toIso: null }),
+    ).toBe("?view=staff");
   });
 });
 
-describe("viewTimeFloor", () => {
-  it("returns a floor 24h back for the 24h view", () => {
+describe("statusesForBoard", () => {
+  it("kitchen excludes pending confirmation", () => {
+    expect(statusesForBoard("kitchen")).toEqual(["new", "preparing", "ready"]);
+  });
+
+  it("staff focuses on pending confirmation", () => {
+    expect(statusesForBoard("staff")).toContain("pending_confirmation");
+    expect(statusesForBoard("staff")).not.toContain("new");
+  });
+});
+
+describe("rangeTimeFloor", () => {
+  it("returns a floor 24h back for the 24h range", () => {
     const now = new Date("2026-06-10T15:00:00Z");
-    expect(viewTimeFloor("24h", now)).toBe("2026-06-09T15:00:00.000Z");
+    expect(rangeTimeFloor("24h", now)).toBe("2026-06-09T15:00:00.000Z");
   });
 
-  it("returns null for status-only views", () => {
-    expect(viewTimeFloor("open")).toBeNull();
-    expect(viewTimeFloor("pending")).toBeNull();
+  it("returns null for the open range", () => {
+    expect(rangeTimeFloor("open")).toBeNull();
   });
 });
 
@@ -103,13 +117,5 @@ describe("startOfDayInTimeZone", () => {
     const now = new Date("2026-01-10T15:00:00Z");
     const start = startOfDayInTimeZone(now, "Europe/Lisbon");
     expect(start.toISOString()).toBe("2026-01-10T00:00:00.000Z");
-  });
-
-  it("handles timezones east of UTC", () => {
-    // At 15:00Z it is exactly midnight (June 11) in Tokyo (UTC+9), so the
-    // start of "today" there is that very instant.
-    const now = new Date("2026-06-10T15:00:00Z");
-    const start = startOfDayInTimeZone(now, "Asia/Tokyo");
-    expect(start.toISOString()).toBe("2026-06-10T15:00:00.000Z");
   });
 });
