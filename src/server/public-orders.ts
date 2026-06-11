@@ -6,6 +6,7 @@ import { OPEN_ORDER_STATUSES, orderShortCode } from "@/lib/orders";
 import { createServiceRoleSupabaseClient } from "@/lib/supabase/service-role";
 import { fetchOpeningHours } from "@/server/opening-hours";
 import {
+  ensureOpenSession,
   issueSessionTokenForOrder,
   validateSessionToken,
 } from "@/server/table-sessions";
@@ -84,7 +85,7 @@ export async function createPublicOrder(
 
   const { data: restaurant } = await supabase
     .from("restaurants")
-    .select("id, status, accepts_orders, paused_message, timezone")
+    .select("id, status, accepts_orders, paused_message, timezone, require_order_confirmation")
     .eq("id", table.restaurant_id)
     .maybeSingle<{
       id: string;
@@ -92,6 +93,7 @@ export async function createPublicOrder(
       accepts_orders: boolean;
       paused_message: string | null;
       timezone: string;
+      require_order_confirmation: boolean;
     }>();
 
   if (!restaurant || restaurant.status !== "active") {
@@ -120,25 +122,39 @@ export async function createPublicOrder(
   const existing = await findExistingOrder(supabase, restaurant.id, input.client_order_token);
   if (existing) return { ok: true, order: existing, deduplicated: true, sessionEnded: false };
 
-  // Browser authorization: a valid token for an open session on THIS table
-  // sends the order straight to the kitchen. Anything else (absent, expired,
-  // revoked, wrong table) degrades to pending_confirmation.
   let tableSessionId: string | null = null;
   let sessionEnded = false;
-  if (input.session_token) {
-    const valid = await validateSessionToken(
-      supabase,
-      restaurant.id,
-      table.id,
-      input.session_token,
-    );
-    if (valid) {
-      tableSessionId = valid.sessionId;
-    } else {
-      sessionEnded = true;
+  let initialStatus: OrderStatus;
+
+  if (restaurant.require_order_confirmation) {
+    // Browser authorization: a valid token for an open session on THIS table
+    // sends the order straight to the kitchen. Anything else degrades to
+    // pending_confirmation.
+    if (input.session_token) {
+      const valid = await validateSessionToken(
+        supabase,
+        restaurant.id,
+        table.id,
+        input.session_token,
+      );
+      if (valid) {
+        tableSessionId = valid.sessionId;
+      } else {
+        sessionEnded = true;
+      }
     }
+    initialStatus = tableSessionId ? "new" : "pending_confirmation";
+  } else {
+    // Direct mode: attach to the table's open session (create if needed) and
+    // send straight to the kitchen — no browser authorization required.
+    const session = await ensureOpenSession(supabase, restaurant.id, table.id, null);
+    if (!session) {
+      console.error("public_order_session_create_failed");
+      return { ok: false, status: 500, code: "internal_error" };
+    }
+    tableSessionId = session.id;
+    initialStatus = "new";
   }
-  const initialStatus: OrderStatus = tableSessionId ? "new" : "pending_confirmation";
 
   const productIds = [...new Set(input.items.map((item) => item.product_id))];
   const { data: products } = await supabase

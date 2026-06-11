@@ -84,6 +84,15 @@ export interface AdminStrings {
   welcomeMessage: string;
   menuLanguages: string;
   defaultLanguage: string;
+  publicMenuBackgroundSection: string;
+  publicMenuBackgroundNote: string;
+  publicMenuBackgroundImageUrl: string;
+  publicMenuBackgroundUpload: string;
+  publicMenuBackgroundMode: string;
+  publicMenuBackgroundPosition: string;
+  publicMenuBackgroundOverlay: string;
+  publicMenuBackgroundOverlayOpacity: string;
+  publicMenuSurfaceStyle: string;
   // Translation CSV workflow
   transExportTitle: string;
   transExportButton: string;
@@ -182,6 +191,16 @@ export const ADMIN_STRINGS: Record<AppLanguage, AdminStrings> = {
     welcomeMessage: "Mensagem de boas-vindas",
     menuLanguages: "Idiomas do menu",
     defaultLanguage: "Idioma predefinido",
+    publicMenuBackgroundSection: "Fundo do menu público",
+    publicMenuBackgroundNote:
+      "Esta imagem só altera a atmosfera de fundo. Botões e destaques continuam a usar as cores principal e secundária.",
+    publicMenuBackgroundImageUrl: "URL da imagem de fundo",
+    publicMenuBackgroundUpload: "Carregar imagem",
+    publicMenuBackgroundMode: "Modo da imagem",
+    publicMenuBackgroundPosition: "Posição",
+    publicMenuBackgroundOverlay: "Sobreposição",
+    publicMenuBackgroundOverlayOpacity: "Opacidade da sobreposição (0–90)",
+    publicMenuSurfaceStyle: "Superfície dos cartões",
     transExportTitle: "1 · Exportar",
     transExportButton: "Descarregar CSV de traduções",
     transExportDesc:
@@ -281,6 +300,16 @@ export const ADMIN_STRINGS: Record<AppLanguage, AdminStrings> = {
     welcomeMessage: "Welcome message",
     menuLanguages: "Menu languages",
     defaultLanguage: "Default language",
+    publicMenuBackgroundSection: "Public menu background",
+    publicMenuBackgroundNote:
+      "This image only changes the background atmosphere. Buttons and accents still use the primary and secondary colors.",
+    publicMenuBackgroundImageUrl: "Background image URL",
+    publicMenuBackgroundUpload: "Upload image",
+    publicMenuBackgroundMode: "Image mode",
+    publicMenuBackgroundPosition: "Position",
+    publicMenuBackgroundOverlay: "Overlay",
+    publicMenuBackgroundOverlayOpacity: "Overlay opacity (0–90)",
+    publicMenuSurfaceStyle: "Card surface style",
     transExportTitle: "1 · Export",
     transExportButton: "Download translation CSV",
     transExportDesc:

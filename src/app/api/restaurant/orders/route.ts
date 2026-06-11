@@ -18,6 +18,7 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const filter = parseOrdersFilter({
     view: url.searchParams.get("view") ?? undefined,
+    range: url.searchParams.get("range") ?? undefined,
     from: url.searchParams.get("from") ?? undefined,
     to: url.searchParams.get("to") ?? undefined,
   });

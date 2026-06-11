@@ -4,6 +4,7 @@ import { AdminBrandingForm } from "@/components/admin/admin-branding-form";
 import { Badge } from "@/components/ui/badge";
 import { ADMIN_STRINGS } from "@/lib/i18n/app";
 import { getAppLanguage } from "@/lib/i18n/server";
+import { resolvePublicMenuBackground } from "@/lib/public-menu/background";
 import {
   resolvePublicMenuTheme,
   type PublicMenuBackgroundStyle,
@@ -58,6 +59,14 @@ export default async function AdminRestaurantBrandingPage({
     public_menu_cart_style: restaurant.public_menu_cart_style,
     public_menu_show_images: restaurant.public_menu_show_images,
   });
+  const background = resolvePublicMenuBackground({
+    public_menu_background_image_url: restaurant.public_menu_background_image_url,
+    public_menu_background_mode: restaurant.public_menu_background_mode,
+    public_menu_background_position: restaurant.public_menu_background_position,
+    public_menu_background_overlay: restaurant.public_menu_background_overlay,
+    public_menu_background_overlay_opacity: restaurant.public_menu_background_overlay_opacity,
+    public_menu_surface_style: restaurant.public_menu_surface_style,
+  });
 
   return (
     <div className="space-y-6">
@@ -106,6 +115,12 @@ export default async function AdminRestaurantBrandingPage({
           publicMenuBackgroundStyle: theme.backgroundStyle as PublicMenuBackgroundStyle,
           publicMenuCartStyle: theme.cartStyle as PublicMenuCartStyle,
           publicMenuShowImages: theme.showImages,
+          publicMenuBackgroundImageUrl: background.imageUrl ?? "",
+          publicMenuBackgroundMode: background.mode,
+          publicMenuBackgroundPosition: background.position,
+          publicMenuBackgroundOverlay: background.overlay,
+          publicMenuBackgroundOverlayOpacity: background.overlayOpacity,
+          publicMenuSurfaceStyle: background.surfaceStyle,
         }}
       />
     </div>

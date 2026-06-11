@@ -2,8 +2,8 @@ import "server-only";
 
 import { orderShortCode } from "@/lib/orders";
 import {
-  statusesForView,
-  viewTimeFloor,
+  rangeTimeFloor,
+  statusesForBoard,
   type OrdersFilter,
 } from "@/lib/orders-filters";
 import type { createServerSupabaseClient } from "@/lib/supabase/server";
@@ -79,16 +79,13 @@ export async function fetchDashboardOrders(
     )
     .eq("restaurant_id", restaurantId);
 
-  const statuses = statusesForView(filter.view);
-  if (statuses) {
-    query = query.in("status", statuses);
-  }
+  query = query.in("status", statusesForBoard(filter.board));
 
-  if (filter.view === "custom") {
+  if (filter.range === "custom") {
     if (filter.fromIso) query = query.gte("created_at", filter.fromIso);
     if (filter.toIso) query = query.lte("created_at", filter.toIso);
   } else {
-    const floor = viewTimeFloor(filter.view);
+    const floor = rangeTimeFloor(filter.range);
     if (floor) query = query.gte("created_at", floor);
   }
 

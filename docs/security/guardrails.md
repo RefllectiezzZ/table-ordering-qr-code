@@ -73,13 +73,18 @@ anything that touches data access.
 ## First-order confirmation & table sessions (saved-QR abuse defense)
 
 - Printed QR codes are fixed; abuse protection is operational, not
-  cryptographic rotation:
-  - an order without a valid browser authorization starts as
-    `pending_confirmation` and is **never** shown as kitchen-ready;
-  - staff confirm/reject from the reception area
-    (`POST /api/restaurant/orders/[id]/confirm|reject`);
-  - confirmation creates/joins the table's open `table_sessions` row
-    (race-safe partial unique index: one open session per table).
+  cryptographic rotation. Each restaurant chooses via
+  `restaurants.require_order_confirmation` (default **true**):
+  - **Confirmation ON** (safer for printed QR): an order without a valid
+    browser authorization starts as `pending_confirmation` and is **never**
+    shown as kitchen-ready; staff confirm/reject from the Staff view
+    (`POST /api/restaurant/orders/[id]/confirm|reject`); confirmation
+    creates/joins the table's open `table_sessions` row (race-safe partial
+    unique index: one open session per table).
+  - **Confirmation OFF** (smoother, less protected): orders go straight to
+    `new` attached to the table's open session (`ensureOpenSession` creates
+    one when needed); no browser authorization is required, but saved-QR
+    abuse is easier because any device can order without staff approval.
 - Browser authorizations (`table_session_access_tokens`):
   - only the SHA-256 hash is stored; the raw token is delivered exactly once
     through `GET /api/public/orders/status`, gated by the order's own
@@ -102,6 +107,18 @@ anything that touches data access.
   order's `client_order_token`; it returns only the order's short code,
   number and status (plus the one-time session token) and is rate-limited per
   IP + table token.
+
+## Public menu background images (Supabase Storage)
+
+- Bucket `restaurant-branding` is public-read (background photos on the QR
+  menu), write-restricted: no anon/authenticated storage policies exist, so
+  the only write path is
+  `POST /api/admin/restaurants/[id]/branding/upload-background` (platform
+  admin only, same-origin).
+- The storage path is built **server-side** from the target `restaurant_id`
+  plus a random UUID filename. Validation: 5 MB cap and JPEG/PNG/WebP
+  checked by magic bytes. Only validated URLs and enum-based overlay/mode
+  values become CSS on `/t/[token]` — no raw HTML/CSS/JS from admin.
 
 ## Product image uploads (Supabase Storage)
 

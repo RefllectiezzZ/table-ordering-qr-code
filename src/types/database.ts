@@ -58,6 +58,14 @@ export interface RestaurantRow {
   public_menu_background_style: string;
   public_menu_cart_style: string;
   public_menu_show_images: boolean;
+  /** When true, first orders from a new device require staff confirmation. */
+  require_order_confirmation: boolean;
+  public_menu_background_image_url: string | null;
+  public_menu_background_mode: string;
+  public_menu_background_position: string;
+  public_menu_background_overlay: string;
+  public_menu_background_overlay_opacity: number;
+  public_menu_surface_style: string;
   created_at: string;
   updated_at: string;
 }
