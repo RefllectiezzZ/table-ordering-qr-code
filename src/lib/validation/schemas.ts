@@ -314,6 +314,62 @@ export const adminRestaurantStatusSchema = z.object({
   status: z.enum(["active", "suspended", "draft"]),
 });
 
+const publicMenuTemplateSchema = z.enum([
+  "brunch_editorial",
+  "fine_dining_dark",
+  "modern_cafe",
+  "street_food_bold",
+  "minimal_clean",
+]);
+const publicMenuDensitySchema = z.enum(["compact", "comfortable", "spacious"]);
+const publicMenuCardStyleSchema = z.enum([
+  "image_right",
+  "image_left",
+  "image_top",
+  "text_only_elegant",
+]);
+const publicMenuHeroStyleSchema = z.enum([
+  "editorial",
+  "immersive_cover",
+  "compact_card",
+  "split_brand",
+]);
+const publicMenuBackgroundStyleSchema = z.enum([
+  "soft_gradient",
+  "paper_texture",
+  "dark_luxury",
+  "clean_white",
+  "bold_blocks",
+]);
+const publicMenuCartStyleSchema = z.enum(["floating_glass", "bottom_bar", "drawer_card"]);
+
+/** Platform admin branding + public menu template settings for any restaurant. */
+export const adminBrandingUpdateSchema = z
+  .object({
+    logo_url: optionalHttpUrl,
+    cover_image_url: optionalHttpUrl,
+    primary_color: hexColorSchema.optional(),
+    secondary_color: hexColorSchema.nullable().optional(),
+    background_color: hexColorSchema.optional(),
+    welcome_message: optionalShortText(300),
+    default_language: languageSchema.optional(),
+    enabled_languages: z.array(languageSchema).min(1).max(4).optional(),
+    public_menu_template: publicMenuTemplateSchema.optional(),
+    public_menu_density: publicMenuDensitySchema.optional(),
+    public_menu_card_style: publicMenuCardStyleSchema.optional(),
+    public_menu_hero_style: publicMenuHeroStyleSchema.optional(),
+    public_menu_background_style: publicMenuBackgroundStyleSchema.optional(),
+    public_menu_cart_style: publicMenuCartStyleSchema.optional(),
+    public_menu_show_images: z.boolean().optional(),
+  })
+  .refine(
+    (data) =>
+      !data.enabled_languages ||
+      !data.default_language ||
+      data.enabled_languages.includes(data.default_language),
+    { message: "The default language must be one of the enabled languages." },
+  );
+
 export const adminUserCreateSchema = z.object({
   email: z.email().max(200),
   password: z.string().min(8).max(72),

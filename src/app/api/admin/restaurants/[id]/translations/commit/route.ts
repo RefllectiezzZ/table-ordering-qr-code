@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireApiRestaurantOwner } from "@/lib/security/api-guards";
+import { requireApiPlatformAdmin } from "@/lib/security/api-guards";
 import { requireSameOrigin } from "@/lib/security/origin";
 import { parseJsonBody } from "@/lib/validation/parse-request";
 import { translationsCommitSchema } from "@/lib/validation/schemas";
@@ -8,20 +8,35 @@ import { commitTranslationImport } from "@/server/translations";
 
 export const dynamic = "force-dynamic";
 
-/** Commits a previewed batch after explicit confirmation. */
-export async function POST(request: Request) {
+/** Platform admin: commit a previewed translation import for a specific restaurant. */
+export async function POST(
+  request: Request,
+  context: { params: Promise<{ id: string }> },
+) {
   const originError = requireSameOrigin(request);
   if (originError) return originError;
 
-  const auth = await requireApiRestaurantOwner();
+  const auth = await requireApiPlatformAdmin();
   if (!auth.ok) return auth.response;
+
+  const { id: restaurantId } = await context.params;
+
+  const { data: restaurant } = await auth.supabase
+    .from("restaurants")
+    .select("id")
+    .eq("id", restaurantId)
+    .maybeSingle();
+
+  if (!restaurant) {
+    return NextResponse.json({ error: "Restaurant not found" }, { status: 404 });
+  }
 
   const parsed = await parseJsonBody(request, translationsCommitSchema);
   if (!parsed.ok) return parsed.response;
 
   const result = await commitTranslationImport(
     auth.supabase,
-    auth.restaurantId!,
+    restaurantId,
     parsed.data.batch_id,
     parsed.data.skip_unknown,
   );
@@ -34,9 +49,9 @@ export async function POST(request: Request) {
   }
 
   await logAudit({
-    restaurantId: auth.restaurantId,
+    restaurantId,
     actorUserId: auth.userId,
-    action: "translation_import.committed",
+    action: "translations.imported",
     entityType: "import_batch",
     entityId: parsed.data.batch_id,
     metadata: {

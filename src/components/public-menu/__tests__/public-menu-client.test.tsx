@@ -27,6 +27,13 @@ function menuData(overrides?: {
       enabledLanguages: ["pt", "en", "es", "fr"],
       acceptsOrders: overrides?.acceptsOrders ?? true,
       pausedMessage: null,
+      publicMenuTemplate: "brunch_editorial",
+      publicMenuDensity: "comfortable",
+      publicMenuCardStyle: "image_right",
+      publicMenuHeroStyle: "editorial",
+      publicMenuBackgroundStyle: "soft_gradient",
+      publicMenuCartStyle: "floating_glass",
+      publicMenuShowImages: true,
     },
     table: { tableNumber: "4", label: "Mesa 4" },
     opening:
@@ -120,5 +127,22 @@ describe("PublicMenuClient (SSR smoke)", () => {
     expect(html).toContain("Tasca do Rio");
     expect(html).not.toContain(">Aberto<");
     expect(html).not.toContain(">Fechado<");
+  });
+
+  it("renders fine_dining_dark template with dark data attribute", () => {
+    const data = menuData();
+    data.restaurant.publicMenuTemplate = "fine_dining_dark";
+    data.restaurant.publicMenuBackgroundStyle = "dark_luxury";
+    const html = renderToString(<PublicMenuClient data={data} />);
+    expect(html).toContain('data-template="fine_dining_dark"');
+    expect(html).toContain("Tasca do Rio");
+  });
+
+  it("renders with missing theme fields via safe fallbacks", () => {
+    const data = menuData();
+    // @ts-expect-error — simulate legacy payload without theme fields
+    delete data.restaurant.publicMenuTemplate;
+    const html = renderToString(<PublicMenuClient data={data} />);
+    expect(html).toContain('data-template="brunch_editorial"');
   });
 });

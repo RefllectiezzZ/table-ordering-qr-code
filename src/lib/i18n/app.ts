@@ -56,6 +56,56 @@ export interface AdminStrings {
   activate: string;
   suspend: string;
   details: string;
+  // Restaurant detail sub-pages
+  backToRestaurant: string;
+  translationsTitle: string;
+  translationsSubtitle: string;
+  brandingTitle: string;
+  brandingSubtitle: string;
+  previewPublicMenu: string;
+  createTableFirst: string;
+  restaurantBrandingNote: string;
+  saveBranding: string;
+  saving: string;
+  saved: string;
+  templatePreset: string;
+  templateIntent: string;
+  density: string;
+  cardStyle: string;
+  heroStyle: string;
+  backgroundStyle: string;
+  cartStyle: string;
+  showProductImages: string;
+  logoUrl: string;
+  coverUrl: string;
+  primaryColor: string;
+  secondaryColor: string;
+  backgroundColor: string;
+  welcomeMessage: string;
+  menuLanguages: string;
+  defaultLanguage: string;
+  // Translation CSV workflow
+  transExportTitle: string;
+  transExportButton: string;
+  transExportDesc: string;
+  transImportTitle: string;
+  transImportDesc: string;
+  transFileLabel: string;
+  transAnalysing: string;
+  transRowsFound: string;
+  transValid: string;
+  transWarnings: string;
+  transInvalid: string;
+  transUnknownProducts: string;
+  transSkipInvalid: string;
+  transConfirm: string;
+  transCommitting: string;
+  transDiscard: string;
+  transSuccess: string;
+  transReadError: string;
+  transCommitError: string;
+  brandingLink: string;
+  translationsLink: string;
 }
 
 export const ADMIN_STRINGS: Record<AppLanguage, AdminStrings> = {
@@ -102,6 +152,61 @@ export const ADMIN_STRINGS: Record<AppLanguage, AdminStrings> = {
     activate: "Ativar",
     suspend: "Suspender",
     details: "Detalhes",
+    backToRestaurant: "← Voltar ao restaurante",
+    translationsTitle: "Traduções (CSV)",
+    translationsSubtitle:
+      "Exporte as traduções do menu, traduza o CSV fora da app e importe aqui. As alterações são pré-visualizadas antes de serem aplicadas.",
+    brandingTitle: "Marca & menu público",
+    brandingSubtitle:
+      "Cores, imagens, mensagem de boas-vindas e o template visual do menu QR (/t/[token]).",
+    previewPublicMenu: "Pré-visualizar menu público",
+    createTableFirst: "Crie uma mesa primeiro para pré-visualizar o menu público.",
+    restaurantBrandingNote:
+      "O proprietário do restaurante também pode editar cores e idiomas em /restaurant/branding. O template do menu público é controlado aqui.",
+    saveBranding: "Guardar",
+    saving: "A guardar…",
+    saved: "Guardado.",
+    templatePreset: "Template do menu",
+    templateIntent: "Intenção visual",
+    density: "Densidade",
+    cardStyle: "Estilo dos cartões",
+    heroStyle: "Hero",
+    backgroundStyle: "Fundo",
+    cartStyle: "Carrinho",
+    showProductImages: "Mostrar fotos dos produtos",
+    logoUrl: "URL do logo",
+    coverUrl: "URL da capa",
+    primaryColor: "Cor principal",
+    secondaryColor: "Cor secundária",
+    backgroundColor: "Cor de fundo",
+    welcomeMessage: "Mensagem de boas-vindas",
+    menuLanguages: "Idiomas do menu",
+    defaultLanguage: "Idioma predefinido",
+    transExportTitle: "1 · Exportar",
+    transExportButton: "Descarregar CSV de traduções",
+    transExportDesc:
+      "Uma linha por produto com product_id, category_id, preço e alergénios (contexto) mais colunas PT/EN/ES/FR.",
+    transImportTitle: "2 · Importar com pré-visualização",
+    transImportDesc:
+      "Carregue o CSV traduzido. Nada é alterado até confirmar. IDs inválidos para este restaurante bloqueiam o commit.",
+    transFileLabel: "Ficheiro CSV traduzido",
+    transAnalysing: "A analisar",
+    transRowsFound: "Linhas",
+    transValid: "Válidas",
+    transWarnings: "Avisos",
+    transInvalid: "Inválidas",
+    transUnknownProducts: "IDs de produto desconhecidos:",
+    transSkipInvalid:
+      "Ignorar as {count} linha(s) inválida(s) e importar só as válidas. Desmarcado bloqueia o commit.",
+    transConfirm: "Confirmar importação",
+    transCommitting: "A importar…",
+    transDiscard: "Descartar pré-visualização",
+    transSuccess:
+      "Importação concluída: {products} tradução(ões) de produto e {categories} de categoria{skipped}.",
+    transReadError: "Não foi possível ler o ficheiro CSV.",
+    transCommitError: "Não foi possível concluir a importação.",
+    brandingLink: "Marca & menu",
+    translationsLink: "Traduções CSV",
   },
   en: {
     overview: "Overview",
@@ -146,6 +251,61 @@ export const ADMIN_STRINGS: Record<AppLanguage, AdminStrings> = {
     activate: "Activate",
     suspend: "Suspend",
     details: "Details",
+    backToRestaurant: "← Back to restaurant",
+    translationsTitle: "Translations (CSV)",
+    translationsSubtitle:
+      "Export the current menu translations, translate the CSV outside the app, then import it here. Changes are previewed before they are applied.",
+    brandingTitle: "Branding & public menu",
+    brandingSubtitle:
+      "Colors, images, welcome message and the visual template for the QR menu (/t/[token]).",
+    previewPublicMenu: "Preview public menu",
+    createTableFirst: "Create a table first to preview the public menu.",
+    restaurantBrandingNote:
+      "The restaurant owner can also edit colors and languages at /restaurant/branding. The public menu template is controlled here.",
+    saveBranding: "Save",
+    saving: "Saving…",
+    saved: "Saved.",
+    templatePreset: "Menu template",
+    templateIntent: "Visual intent",
+    density: "Density",
+    cardStyle: "Card style",
+    heroStyle: "Hero style",
+    backgroundStyle: "Background",
+    cartStyle: "Cart style",
+    showProductImages: "Show product photos",
+    logoUrl: "Logo URL",
+    coverUrl: "Cover image URL",
+    primaryColor: "Primary color",
+    secondaryColor: "Secondary color",
+    backgroundColor: "Background color",
+    welcomeMessage: "Welcome message",
+    menuLanguages: "Menu languages",
+    defaultLanguage: "Default language",
+    transExportTitle: "1 · Export",
+    transExportButton: "Download translation CSV",
+    transExportDesc:
+      "One row per product with product_id, category_id, price and allergens (context) plus PT/EN/ES/FR columns.",
+    transImportTitle: "2 · Import with preview",
+    transImportDesc:
+      "Upload the translated CSV. Nothing changes until you confirm. Invalid IDs for this restaurant block the commit.",
+    transFileLabel: "Translated CSV file",
+    transAnalysing: "Analysing",
+    transRowsFound: "Rows",
+    transValid: "Valid",
+    transWarnings: "Warnings",
+    transInvalid: "Invalid",
+    transUnknownProducts: "Unknown product IDs:",
+    transSkipInvalid:
+      "Skip the {count} invalid row(s) and import only valid ones. Unchecked blocks the commit.",
+    transConfirm: "Confirm import",
+    transCommitting: "Committing…",
+    transDiscard: "Discard preview",
+    transSuccess:
+      "Import committed: {products} product translation(s) and {categories} category translation(s){skipped}.",
+    transReadError: "Could not read the CSV file.",
+    transCommitError: "Could not commit the import.",
+    brandingLink: "Branding & menu",
+    translationsLink: "Translations CSV",
   },
 };
 

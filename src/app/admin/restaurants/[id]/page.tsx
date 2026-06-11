@@ -131,6 +131,26 @@ export default async function AdminRestaurantDetailPage({
       />
 
       <Card>
+        <CardHeader>
+          <CardTitle>Platform setup</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-wrap gap-3">
+          <Link
+            href={`/admin/restaurants/${restaurant.id}/branding`}
+            className="rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-800 shadow-sm hover:bg-slate-50"
+          >
+            Branding & public menu template →
+          </Link>
+          <Link
+            href={`/admin/restaurants/${restaurant.id}/translations`}
+            className="rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-800 shadow-sm hover:bg-slate-50"
+          >
+            Translation CSV import/export →
+          </Link>
+        </CardContent>
+      </Card>
+
+      <Card>
         <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
           <CardTitle>Opening hours</CardTitle>
           {opening.configured ? (
@@ -155,8 +175,9 @@ export default async function AdminRestaurantDetailPage({
           <CardTitle>Notes</CardTitle>
         </CardHeader>
         <CardContent className="text-xs leading-relaxed text-slate-500">
-          Menu, branding, tables and translations are managed by the restaurant owner in their own
-          dashboard. Platform admins manage the restaurant lifecycle (status, slug, users) here.
+          Menu categories, products and tables are managed by the restaurant owner in their
+          dashboard. Platform admins control restaurant lifecycle (status, slug, users), public
+          menu templates/branding, and translation CSV import/export.
         </CardContent>
       </Card>
     </div>

@@ -40,8 +40,37 @@ interface CommitResultState {
   skippedRows: number;
 }
 
-export function TranslationsManager() {
+export interface AdminTranslationsCopy {
+  exportTitle: string;
+  exportDescription: string;
+  exportButton: string;
+  importTitle: string;
+  importDescription: string;
+  fileLabel: string;
+  analysing: string;
+  rowsFound: string;
+  valid: string;
+  warnings: string;
+  invalid: string;
+  matched: string;
+  unknownProducts: string;
+  skipInvalid: string;
+  confirm: string;
+  committing: string;
+  discard: string;
+  success: string;
+  readError: string;
+  commitError: string;
+}
+
+interface AdminTranslationsManagerProps {
+  restaurantId: string;
+  copy: AdminTranslationsCopy;
+}
+
+export function AdminTranslationsManager({ restaurantId, copy }: AdminTranslationsManagerProps) {
   const router = useRouter();
+  const apiBase = `/api/admin/restaurants/${restaurantId}/translations`;
   const [fileName, setFileName] = useState<string | null>(null);
   const [preview, setPreview] = useState<PreviewState | null>(null);
   const [committed, setCommitted] = useState<CommitResultState | null>(null);
@@ -63,7 +92,7 @@ export function TranslationsManager() {
 
     try {
       const content = await file.text();
-      const response = await fetch("/api/restaurant/translations/preview", {
+      const response = await fetch(`${apiBase}/preview`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ filename: file.name, csv_content: content }),
@@ -75,12 +104,12 @@ export function TranslationsManager() {
         errors?: string[];
       };
       if (!response.ok || !payload.batch_id || !payload.summary || !payload.rows) {
-        setError(payload.errors?.join(" ") ?? "Could not read the CSV file.");
+        setError(payload.errors?.join(" ") ?? copy.readError);
         return;
       }
       setPreview({ batchId: payload.batch_id, summary: payload.summary, rows: payload.rows });
     } catch {
-      setError("Could not read the CSV file.");
+      setError(copy.readError);
     } finally {
       setPending(null);
     }
@@ -91,7 +120,7 @@ export function TranslationsManager() {
     setError(null);
     setPending("commit");
     try {
-      const response = await fetch("/api/restaurant/translations/commit", {
+      const response = await fetch(`${apiBase}/commit`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ batch_id: preview.batchId, skip_unknown: skipUnknown }),
@@ -103,7 +132,7 @@ export function TranslationsManager() {
         skipped_rows?: number;
       };
       if (!response.ok) {
-        setError(payload.message ?? "Could not commit the import.");
+        setError(payload.message ?? copy.commitError);
         return;
       }
       setCommitted({
@@ -114,7 +143,7 @@ export function TranslationsManager() {
       setPreview(null);
       router.refresh();
     } catch {
-      setError("Could not commit the import.");
+      setError(copy.commitError);
     } finally {
       setPending(null);
     }
@@ -126,28 +155,24 @@ export function TranslationsManager() {
     <div className="max-w-4xl space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle>1 · Export</CardTitle>
+          <CardTitle>{copy.exportTitle}</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-wrap items-center gap-3">
-          <a href="/api/restaurant/translations/export">
-            <Button variant="outline">Download translation CSV</Button>
+          <a href={`${apiBase}/export`}>
+            <Button variant="outline">{copy.exportButton}</Button>
           </a>
-          <p className="text-xs text-slate-500">
-            Contains one row per product with product_id, category_id, price and allergens (for
-            context) plus name/description/category columns for PT, EN, ES and FR.
-          </p>
+          <p className="text-xs text-slate-500">{copy.exportDescription}</p>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>2 · Import with preview</CardTitle>
+          <CardTitle>{copy.importTitle}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          <p className="text-sm text-slate-600">{copy.importDescription}</p>
           <label className="block">
-            <span className="mb-1 block text-xs font-medium text-slate-600">
-              Translated CSV file
-            </span>
+            <span className="mb-1 block text-xs font-medium text-slate-600">{copy.fileLabel}</span>
             <input
               type="file"
               accept=".csv,text/csv"
@@ -156,25 +181,38 @@ export function TranslationsManager() {
             />
           </label>
           {pending === "preview" ? (
-            <p className="text-sm text-slate-500">Analysing {fileName}…</p>
+            <p className="text-sm text-slate-500">
+              {copy.analysing} {fileName}…
+            </p>
           ) : null}
           <FieldError message={error} />
 
           {preview ? (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                <SummaryStat label="Rows found" value={preview.summary.totalRows} />
-                <SummaryStat label="Valid" value={preview.summary.validRows} tone="text-emerald-600" />
-                <SummaryStat label="Warnings" value={preview.summary.warningRows} tone="text-amber-600" />
-                <SummaryStat label="Invalid" value={preview.summary.invalidRows} tone="text-red-600" />
+                <SummaryStat label={copy.rowsFound} value={preview.summary.totalRows} />
+                <SummaryStat
+                  label={copy.valid}
+                  value={preview.summary.validRows}
+                  tone="text-emerald-600"
+                />
+                <SummaryStat
+                  label={copy.warnings}
+                  value={preview.summary.warningRows}
+                  tone="text-amber-600"
+                />
+                <SummaryStat
+                  label={copy.invalid}
+                  value={preview.summary.invalidRows}
+                  tone="text-red-600"
+                />
               </div>
               <p className="text-xs text-slate-500">
-                {preview.summary.matchedProducts} product(s) and{" "}
-                {preview.summary.matchedCategories} categor(y/ies) matched by ID.
+                {preview.summary.matchedProducts} product(s) · {preview.summary.matchedCategories}{" "}
+                categor(y/ies).{" "}
                 {preview.summary.unknownProductIds.length > 0 ? (
                   <>
-                    {" "}
-                    Unknown product IDs:{" "}
+                    {copy.unknownProducts}{" "}
                     <span className="font-mono">
                       {preview.summary.unknownProductIds.slice(0, 5).join(", ")}
                       {preview.summary.unknownProductIds.length > 5 ? "…" : ""}
@@ -232,19 +270,16 @@ export function TranslationsManager() {
                     onChange={(e) => setSkipUnknown(e.target.checked)}
                     className="mt-0.5 h-4 w-4 rounded border-amber-300"
                   />
-                  <span>
-                    Skip the {preview.summary.invalidRows} invalid row(s) and import only the
-                    valid ones. Leave unchecked to block the commit until the CSV is fixed.
-                  </span>
+                  <span>{copy.skipInvalid.replace("{count}", String(preview.summary.invalidRows))}</span>
                 </label>
               ) : null}
 
               <div className="flex gap-2">
                 <Button onClick={handleCommit} disabled={pending === "commit" || blocked}>
-                  {pending === "commit" ? "Committing…" : "Confirm & commit import"}
+                  {pending === "commit" ? copy.committing : copy.confirm}
                 </Button>
                 <Button variant="ghost" onClick={() => setPreview(null)}>
-                  Discard preview
+                  {copy.discard}
                 </Button>
               </div>
             </div>
@@ -252,9 +287,13 @@ export function TranslationsManager() {
 
           {committed ? (
             <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
-              Import committed: {committed.productTranslations} product translation(s) and{" "}
-              {committed.categoryTranslations} category translation(s) updated
-              {committed.skippedRows > 0 ? `, ${committed.skippedRows} row(s) skipped` : ""}.
+              {copy.success
+                .replace("{products}", String(committed.productTranslations))
+                .replace("{categories}", String(committed.categoryTranslations))
+                .replace(
+                  "{skipped}",
+                  committed.skippedRows > 0 ? `, ${committed.skippedRows} skipped` : "",
+                )}
             </div>
           ) : null}
         </CardContent>

@@ -114,14 +114,22 @@ Use a phone or a ~390px viewport for the whole section.
 - [ ] The first phone orders again → **pending_confirmation** again (its
       authorization was revoked with the session).
 
-## 7. Translations CSV flow
+## 7. Translations CSV flow (platform admin)
 
-- [ ] `/restaurant/translations` → **Download translation CSV** → file contains the
-      product with its IDs, price and allergens.
-- [ ] Edit the CSV: fill `name_es`/`description_es`. Import it → preview shows
-      rows found, matched IDs and fields to update.
-- [ ] Commit → success message.
+- [ ] Restaurant owner **does not** see `/restaurant/translations` or CSV tools in nav.
+- [ ] `/admin/restaurants/[id]/translations` → **Download translation CSV** → file
+      contains products with IDs, price and allergens for that restaurant.
+- [ ] Edit the CSV: fill `name_es`/`description_es`. Import → preview shows rows
+      found, matched IDs and fields to update.
+- [ ] Commit → success message. Invalid product IDs from another restaurant are rejected.
 - [ ] Public menu in Spanish shows the new translation.
+
+## 8. Public menu templates (platform admin)
+
+- [ ] `/admin/restaurants/[id]/branding` → change template (e.g. `fine_dining_dark`).
+- [ ] Save → open preview link `/t/[token]` → visual style reflects the template.
+- [ ] Toggle `public_menu_show_images` off → text-first cards still look intentional.
+- [ ] Public menu still respects opening hours, pause orders, and order submission.
 - [ ] Edit the CSV again and corrupt one `product_id` (e.g. flip a digit) →
       preview marks the row invalid and commit is blocked unless "skip invalid
       rows" is checked.
