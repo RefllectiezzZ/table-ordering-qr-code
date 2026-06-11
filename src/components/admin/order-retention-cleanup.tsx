@@ -81,7 +81,7 @@ export function OrderRetentionCleanup({
       const response = await fetch("/api/admin/maintenance/orders-cleanup/execute", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ retention_days: retentionDays }),
+        body: JSON.stringify({ retention_days: retentionDays, confirm_text: confirmText }),
       });
       const payload = (await response.json()) as {
         result?: { deletedOrders: number; deletedOrderItems: number; deletedEmptySessions: number };
