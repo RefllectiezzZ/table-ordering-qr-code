@@ -32,6 +32,16 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "Table not found" }, { status: 404 });
   }
 
+  const { data: restaurant } = await auth.supabase
+    .from("restaurants")
+    .select("enable_table_sessions")
+    .eq("id", auth.restaurantId!)
+    .maybeSingle<{ enable_table_sessions: boolean }>();
+
+  if (!restaurant?.enable_table_sessions) {
+    return NextResponse.json({ error: "Table sessions are disabled" }, { status: 409 });
+  }
+
   const service = createServiceRoleSupabaseClient();
   const session = await ensureOpenSession(service, auth.restaurantId!, table.id, auth.userId);
   if (!session) {

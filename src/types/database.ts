@@ -60,6 +60,8 @@ export interface RestaurantRow {
   public_menu_show_images: boolean;
   /** When true, first orders from a new device require staff confirmation. */
   require_order_confirmation: boolean;
+  /** When true, public orders are grouped into table sessions for bill/checkout. */
+  enable_table_sessions: boolean;
   public_menu_background_image_url: string | null;
   public_menu_background_mode: string;
   public_menu_background_position: string;

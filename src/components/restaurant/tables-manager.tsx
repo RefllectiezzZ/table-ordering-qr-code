@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -7,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FieldError, Input, Label } from "@/components/ui/form";
 import { useApiAction } from "@/components/restaurant/use-api-action";
-import { isAutomaticTableMode } from "@/lib/table-mode";
+import { tableSecurityMode } from "@/lib/table-mode";
 import { formatDateTime, relativeTimePt } from "@/lib/utils";
 import type { TableStatus } from "@/types/database";
 
@@ -26,7 +27,7 @@ export interface TableData {
   latestOrderAt: string | null;
 }
 
-function tableStateBadges(table: TableData) {
+function tableStateBadges(table: TableData, sessionsEnabled: boolean) {
   const badges: { label: string; tone: "green" | "yellow" | "red" | "neutral" | "blue" | "purple" }[] = [];
   if (table.status !== "active") {
     badges.push({ label: "QR inativo", tone: "neutral" });
@@ -37,10 +38,12 @@ function tableStateBadges(table: TableData) {
   if (table.openOrderCount > 0) {
     badges.push({ label: `${table.openOrderCount} em curso`, tone: "red" });
   }
-  if (table.openSessionId) {
-    badges.push({ label: "Ocupada", tone: "yellow" });
-  } else {
-    badges.push({ label: "Livre", tone: "green" });
+  if (sessionsEnabled) {
+    if (table.openSessionId) {
+      badges.push({ label: "Ocupada", tone: "yellow" });
+    } else {
+      badges.push({ label: "Livre", tone: "green" });
+    }
   }
   return badges;
 }
@@ -48,7 +51,7 @@ function tableStateBadges(table: TableData) {
 function FloorCard({
   table,
   isOwner,
-  automaticMode,
+  mode,
   busy,
   onOpenSession,
   onCloseSession,
@@ -56,7 +59,7 @@ function FloorCard({
 }: {
   table: TableData;
   isOwner: boolean;
-  automaticMode: boolean;
+  mode: ReturnType<typeof tableSecurityMode>;
   busy: boolean;
   onOpenSession: (table: TableData) => void;
   onCloseSession: (table: TableData) => void;
@@ -64,6 +67,7 @@ function FloorCard({
 }) {
   const [showQr, setShowQr] = useState(false);
   const [copied, setCopied] = useState(false);
+  const sessionsEnabled = mode !== "simple";
 
   async function copyUrl() {
     try {
@@ -83,10 +87,11 @@ function FloorCard({
             {table.label ?? `Mesa ${table.tableNumber}`}
           </CardTitle>
           <div className="mt-1.5 flex flex-wrap gap-1.5">
-            {automaticMode ? (
-              <Badge tone="blue">Modo automático</Badge>
+            {mode === "fast_with_sessions" ? (
+              <Badge tone="blue">Modo rápido com sessões</Badge>
             ) : null}
-            {tableStateBadges(table).map((badge) => (
+            {mode === "simple" ? <Badge tone="neutral">Sem sessões de mesa</Badge> : null}
+            {tableStateBadges(table, sessionsEnabled).map((badge) => (
               <Badge key={badge.label} tone={badge.tone}>
                 {badge.label}
               </Badge>
@@ -95,38 +100,51 @@ function FloorCard({
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
-        <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-slate-500">
-          <dt>Sessão aberta</dt>
-          <dd className="text-right font-medium text-slate-700">
-            {table.sessionOpenedAt ? formatDateTime(table.sessionOpenedAt) : "—"}
-          </dd>
-          <dt>Pedidos na sessão</dt>
-          <dd className="text-right font-medium text-slate-700">
-            {table.openSessionId ? table.sessionOrderCount : "—"}
-          </dd>
-          <dt>Último pedido</dt>
-          <dd className="text-right font-medium text-slate-700">
-            {table.latestOrderAt ? relativeTimePt(table.latestOrderAt) : "—"}
-          </dd>
-        </dl>
+        {sessionsEnabled ? (
+          <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-slate-500">
+            <dt>Sessão aberta</dt>
+            <dd className="text-right font-medium text-slate-700">
+              {table.sessionOpenedAt ? formatDateTime(table.sessionOpenedAt) : "—"}
+            </dd>
+            <dt>Pedidos na sessão</dt>
+            <dd className="text-right font-medium text-slate-700">
+              {table.openSessionId ? table.sessionOrderCount : "—"}
+            </dd>
+            <dt>Último pedido</dt>
+            <dd className="text-right font-medium text-slate-700">
+              {table.latestOrderAt ? relativeTimePt(table.latestOrderAt) : "—"}
+            </dd>
+          </dl>
+        ) : (
+          <p className="text-xs leading-relaxed text-slate-500">
+            Os pedidos entram individualmente e não existe conta agrupada da mesa.
+          </p>
+        )}
 
-        {automaticMode ? (
+        {mode === "fast_with_sessions" ? (
           <p className="border-t border-slate-100 pt-3 text-xs leading-relaxed text-slate-500">
-            Os pedidos criam sessões automaticamente quando chegam. Pode fechar a sessão para
-            limpar a mesa quando os clientes saírem.
+            Os pedidos entram diretamente na cozinha, mas continuam agrupados numa sessão para
+            conta e fecho da mesa.
           </p>
         ) : null}
 
         <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-3">
-          {table.openSessionId ? (
-            <Button size="sm" variant="outline" disabled={busy} onClick={() => onCloseSession(table)}>
-              Fechar sessão
-            </Button>
-          ) : automaticMode ? null : (
+          {sessionsEnabled && table.openSessionId ? (
+            <>
+              <Link href={`/restaurant/tables/${table.id}/bill`}>
+                <Button size="sm" variant="primary">
+                  Conta
+                </Button>
+              </Link>
+              <Button size="sm" variant="outline" disabled={busy} onClick={() => onCloseSession(table)}>
+                Fechar sessão
+              </Button>
+            </>
+          ) : sessionsEnabled && mode === "secure" ? (
             <Button size="sm" variant="outline" disabled={busy} onClick={() => onOpenSession(table)}>
               Abrir sessão
             </Button>
-          )}
+          ) : null}
           <Button size="sm" variant="ghost" onClick={() => setShowQr((v) => !v)}>
             {showQr ? "Esconder QR" : "Ver QR"}
           </Button>
@@ -169,12 +187,14 @@ export function TablesManager({
   tables,
   isOwner,
   requireOrderConfirmation,
+  enableTableSessions,
 }: {
   tables: TableData[];
   isOwner: boolean;
   requireOrderConfirmation: boolean;
+  enableTableSessions: boolean;
 }) {
-  const automaticMode = isAutomaticTableMode(requireOrderConfirmation);
+  const mode = tableSecurityMode(requireOrderConfirmation, enableTableSessions);
   const [showCreate, setShowCreate] = useState(false);
   const [tableNumber, setTableNumber] = useState("");
   const [label, setLabel] = useState("");
@@ -205,11 +225,12 @@ export function TablesManager({
 
   async function closeSession(table: TableData) {
     if (!table.openSessionId) return;
-    const closeMessage = automaticMode
-      ? `Fechar a sessão da ${table.label ?? `Mesa ${table.tableNumber}`}? ` +
-        "Os pedidos ficam no histórico e uma nova sessão será criada automaticamente no próximo pedido."
-      : `Fechar a sessão da ${table.label ?? `Mesa ${table.tableNumber}`}? ` +
-        "Os pedidos ficam no histórico e os clientes seguintes voltam a precisar de confirmação.";
+    const closeMessage =
+      mode === "fast_with_sessions"
+        ? `Fechar a sessão da ${table.label ?? `Mesa ${table.tableNumber}`}? ` +
+          "Os pedidos ficam no histórico e uma nova sessão será criada automaticamente no próximo pedido."
+        : `Fechar a sessão da ${table.label ?? `Mesa ${table.tableNumber}`}? ` +
+          "Os pedidos ficam no histórico e os clientes seguintes voltam a precisar de confirmação.";
     if (!window.confirm(closeMessage)) {
       return;
     }
@@ -219,8 +240,6 @@ export function TablesManager({
     });
     if (ok) return;
 
-    // The API blocks the close when open orders remain; ask for the explicit
-    // override described in the warning.
     if (
       window.confirm(
         "Esta mesa ainda tem pedidos que não estão entregues/cancelados. Fechar mesmo assim?",
@@ -246,11 +265,17 @@ export function TablesManager({
         />
       ) : null}
 
-      {automaticMode ? (
+      {mode === "simple" ? (
+        <p className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-relaxed text-slate-700">
+          <span className="font-semibold">Sem sessões de mesa.</span> Os pedidos entram
+          individualmente e não existe conta agrupada da mesa. Os QR codes continuam a funcionar
+          normalmente.
+        </p>
+      ) : mode === "fast_with_sessions" ? (
         <p className="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm leading-relaxed text-sky-900">
-          <span className="font-semibold">Modo automático ativo.</span> Os pedidos entram diretamente
-          na cozinha e as sessões de mesa são criadas em segundo plano — não precisa de abrir mesas
-          manualmente.
+          <span className="font-semibold">Modo rápido com sessões.</span> Os pedidos entram
+          diretamente na cozinha e as sessões são criadas automaticamente — use Conta para ver o
+          consumo da mesa.
         </p>
       ) : null}
 
@@ -260,7 +285,7 @@ export function TablesManager({
             key={table.id}
             table={table}
             isOwner={isOwner}
-            automaticMode={automaticMode}
+            mode={mode}
             busy={pending}
             onOpenSession={(t) => void openSession(t)}
             onCloseSession={(t) => void closeSession(t)}

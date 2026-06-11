@@ -38,12 +38,16 @@ export default async function TablesPage() {
     fetchTableFloorState(supabase, session.restaurantId),
     supabase
       .from("restaurants")
-      .select("require_order_confirmation")
+      .select("require_order_confirmation, enable_table_sessions")
       .eq("id", session.restaurantId)
-      .maybeSingle<{ require_order_confirmation: boolean }>(),
+      .maybeSingle<{
+        require_order_confirmation: boolean;
+        enable_table_sessions: boolean;
+      }>(),
   ]);
 
   const requireOrderConfirmation = restaurantRow.data?.require_order_confirmation ?? true;
+  const enableTableSessions = restaurantRow.data?.enable_table_sessions ?? true;
 
   const appUrl = getAppBaseUrl();
 
@@ -75,15 +79,18 @@ export default async function TablesPage() {
       <div className="mb-5">
         <h1 className="text-xl font-bold text-slate-900">Mesas</h1>
         <p className="max-w-2xl text-sm text-slate-500">
-          {requireOrderConfirmation
-            ? "Estado operacional de cada mesa. Abra a sessão quando chegam clientes e feche quando saem — o próximo grupo volta a precisar de confirmação no primeiro pedido. Os QR codes são fixos e podem ser impressos."
-            : "Estado operacional de cada mesa. As sessões são criadas automaticamente quando chegam pedidos. Feche a sessão opcionalmente quando os clientes saírem para limpar a mesa. Os QR codes são fixos e podem ser impressos."}
+          {enableTableSessions
+            ? requireOrderConfirmation
+              ? "Estado operacional de cada mesa. Abra a sessão quando chegam clientes e feche quando saem — o próximo grupo volta a precisar de confirmação no primeiro pedido. Os QR codes são fixos e podem ser impressos."
+              : "Estado operacional de cada mesa. Modo rápido com sessões: os pedidos entram diretamente na cozinha, mas continuam agrupados para conta e fecho da mesa. Os QR codes são fixos e podem ser impressos."
+            : "Estado operacional de cada mesa. Sem sessões de mesa: os pedidos entram individualmente e não existe conta agrupada. Os QR codes são fixos e podem ser impressos."}
         </p>
       </div>
       <TablesManager
         tables={tables}
         isOwner={isOwner}
         requireOrderConfirmation={requireOrderConfirmation}
+        enableTableSessions={enableTableSessions}
       />
     </div>
   );

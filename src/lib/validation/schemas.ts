@@ -142,6 +142,19 @@ export const orderConfirmationSchema = z.object({
   require_order_confirmation: z.boolean(),
 });
 
+export const tableSecuritySchema = z
+  .object({
+    require_order_confirmation: z.boolean(),
+    enable_table_sessions: z.boolean(),
+  })
+  .refine(
+    (data) => !(data.require_order_confirmation && !data.enable_table_sessions),
+    {
+      message:
+        "A confirmação do primeiro pedido requer sessões de mesa ativas.",
+    },
+  );
+
 // ---------------------------------------------------------------------------
 // Platform admin: order retention cleanup
 // ---------------------------------------------------------------------------
