@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { checkRateLimit, getClientIp } from "@/lib/security/rate-limit";
 import { parseJsonBody } from "@/lib/validation/parse-request";
 import { publicOrderSchema } from "@/lib/validation/schemas";
 import { createPublicOrder } from "@/server/public-orders";
@@ -21,37 +20,26 @@ export const dynamic = "force-dynamic";
  *
  * Intentionally NOT behind the same-origin guard (customers may open the QR
  * link from anywhere); abuse resistance comes from strict validation, the
- * confirmation flow above and a best-effort in-memory rate limit per
- * IP + table token. The 20/min budget never blocks legitimate idempotent
- * retries of the same client_order_token. A distributed limiter remains a
- * launch gate (docs/launch/launch-gates.md).
+ * confirmation flow above and server-side rate limiting (HMAC-hashed keys in
+ * public_order_attempts — no raw IP storage). Idempotent retries of the
+ * same client_order_token bypass the limiter.
  */
 export async function POST(request: Request) {
   const parsed = await parseJsonBody(request, publicOrderSchema);
   if (!parsed.ok) return parsed.response;
 
-  const rate = checkRateLimit(`${getClientIp(request)}:${parsed.data.table_token}`);
-  if (!rate.allowed) {
-    return NextResponse.json(
-      { error: "rate_limited" },
-      {
-        status: 429,
-        headers: { "Retry-After": String(rate.retryAfterSeconds) },
-      },
-    );
-  }
-
-  const result = await createPublicOrder(parsed.data);
+  const result = await createPublicOrder(parsed.data, request);
 
   if (!result.ok) {
     return NextResponse.json(
       {
         error: result.code,
-        ...(result.code === "orders_paused" && result.message
-          ? { message: result.message }
-          : {}),
+        ...(result.message ? { message: result.message } : {}),
       },
-      { status: result.status },
+      {
+        status: result.status,
+        ...(result.code === "rate_limited" ? { headers: { "Retry-After": "60" } } : {}),
+      },
     );
   }
 

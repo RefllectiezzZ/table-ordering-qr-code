@@ -34,6 +34,9 @@ export interface PublicMenuStrings {
   remove: string;
   orderFailed: string;
   allergenDisclaimer: string;
+  allergensNotIndicated: string;
+  legalPrivacy: string;
+  legalTerms: string;
   invalidTokenTitle: string;
   invalidTokenBody: string;
   unavailableTitle: string;
@@ -93,7 +96,10 @@ export const PUBLIC_MENU_STRINGS: Record<Language, PublicMenuStrings> = {
     remove: "Remover",
     orderFailed: "Não foi possível enviar o pedido. Tente novamente.",
     allergenDisclaimer:
-      "Tem alergias ou intolerâncias alimentares? Confirme com a equipa do restaurante antes de consumir.",
+      "Informação de alergénios fornecida pelo restaurante. Em caso de alergia ou intolerância, confirme sempre com a equipa antes de pedir.",
+    allergensNotIndicated: "Sem informação de alergénios indicada",
+    legalPrivacy: "Privacidade",
+    legalTerms: "Termos",
     invalidTokenTitle: "QR code inválido",
     invalidTokenBody:
       "Este QR code não é válido ou já não está ativo. Peça ajuda à equipa do restaurante.",
@@ -151,7 +157,10 @@ export const PUBLIC_MENU_STRINGS: Record<Language, PublicMenuStrings> = {
     remove: "Remove",
     orderFailed: "We could not send your order. Please try again.",
     allergenDisclaimer:
-      "Food allergies or intolerances? Please confirm with the restaurant staff before consuming.",
+      "Allergen information is provided by the restaurant. If you have an allergy or intolerance, always confirm with staff before ordering.",
+    allergensNotIndicated: "No allergen information indicated",
+    legalPrivacy: "Privacy",
+    legalTerms: "Terms",
     invalidTokenTitle: "Invalid QR code",
     invalidTokenBody:
       "This QR code is not valid or is no longer active. Please ask the restaurant staff for help.",
@@ -209,7 +218,10 @@ export const PUBLIC_MENU_STRINGS: Record<Language, PublicMenuStrings> = {
     remove: "Eliminar",
     orderFailed: "No se pudo enviar el pedido. Inténtelo de nuevo.",
     allergenDisclaimer:
-      "¿Alergias o intolerancias alimentarias? Confirme con el personal del restaurante antes de consumir.",
+      "La información de alérgenos la proporciona el restaurante. En caso de alergia o intolerancia, confirme siempre con el personal antes de pedir.",
+    allergensNotIndicated: "Sin información de alérgenos indicada",
+    legalPrivacy: "Privacidad",
+    legalTerms: "Términos",
     invalidTokenTitle: "Código QR no válido",
     invalidTokenBody:
       "Este código QR no es válido o ya no está activo. Pida ayuda al personal del restaurante.",
@@ -267,7 +279,10 @@ export const PUBLIC_MENU_STRINGS: Record<Language, PublicMenuStrings> = {
     remove: "Supprimer",
     orderFailed: "Impossible d'envoyer la commande. Veuillez réessayer.",
     allergenDisclaimer:
-      "Allergies ou intolérances alimentaires ? Confirmez auprès du personnel du restaurant avant de consommer.",
+      "Les informations sur les allergènes sont fournies par le restaurant. En cas d'allergie ou d'intolérance, confirmez toujours avec l'équipe avant de commander.",
+    allergensNotIndicated: "Aucune information sur les allergènes indiquée",
+    legalPrivacy: "Confidentialité",
+    legalTerms: "Conditions",
     invalidTokenTitle: "QR code non valide",
     invalidTokenBody:
       "Ce QR code n'est pas valide ou n'est plus actif. Demandez de l'aide au personnel du restaurant.",

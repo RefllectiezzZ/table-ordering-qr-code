@@ -47,7 +47,7 @@ export default async function TableBillPage({
         <div className="mb-5">
           <h1 className="text-xl font-bold text-slate-900">Conta da mesa</h1>
           <p className="text-sm text-slate-500">
-            Pedidos confirmados da sessão ativa e total da conta.
+            Resumo operacional dos pedidos confirmados — não é pagamento nem fatura.
           </p>
         </div>
         <TableBillView bill={result.bill} empty={false} tableLabel={tableLabel} />
@@ -62,7 +62,7 @@ export default async function TableBillPage({
       <div className="mb-5">
         <h1 className="text-xl font-bold text-slate-900">Conta da mesa</h1>
         <p className="text-sm text-slate-500">
-          Pedidos confirmados da sessão ativa e total da conta.
+          Resumo operacional dos pedidos confirmados — não é pagamento nem fatura.
         </p>
       </div>
       <TableBillView bill={null} empty tableLabel={tableLabel} />

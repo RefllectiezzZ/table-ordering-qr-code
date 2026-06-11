@@ -14,6 +14,7 @@ import {
 import type { PublicOrderInput } from "@/lib/validation/schemas";
 import type { OrderStatus } from "@/types/database";
 import type { PublicOrderSummary } from "@/types/public-menu";
+import { enforcePublicOrderRateLimit } from "@/server/public-order-rate-limit";
 
 export type CreatePublicOrderResult =
   | {
@@ -41,8 +42,9 @@ export type CreatePublicOrderResult =
         | "unavailable_product"
         | "invalid_quantity"
         | "empty_order"
+        | "rate_limited"
         | "internal_error";
-      /** Optional restaurant-authored message (only for orders_paused). */
+      /** Optional restaurant-authored message (only for orders_paused / rate_limited). */
       message?: string | null;
     };
 
@@ -72,6 +74,7 @@ interface InsertedOrderRow {
  */
 export async function createPublicOrder(
   input: PublicOrderInput,
+  request?: Request,
 ): Promise<CreatePublicOrderResult> {
   const supabase = createServiceRoleSupabaseClient();
 
@@ -125,6 +128,22 @@ export async function createPublicOrder(
   // return the existing order instead of creating a duplicate.
   const existing = await findExistingOrder(supabase, restaurant.id, input.client_order_token);
   if (existing) return { ok: true, order: existing, deduplicated: true, sessionEnded: false };
+
+  if (request) {
+    const rate = await enforcePublicOrderRateLimit({
+      restaurantId: restaurant.id,
+      tableId: table.id,
+      request,
+    });
+    if (!rate.allowed) {
+      return {
+        ok: false,
+        status: 429,
+        code: "rate_limited",
+        message: rate.message,
+      };
+    }
+  }
 
   const enableTableSessions = restaurant.enable_table_sessions ?? true;
   const requireOrderConfirmation =

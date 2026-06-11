@@ -19,6 +19,7 @@ const OWNER_LINKS: NavLink[] = [
   { href: "/restaurant/products", label: "Produtos" },
   { href: "/restaurant/branding", label: "Marca" },
   { href: "/restaurant/settings", label: "Definições" },
+  { href: "/restaurant/help", label: "Ajuda" },
 ];
 
 const STAFF_LINKS: NavLink[] = [
@@ -26,6 +27,7 @@ const STAFF_LINKS: NavLink[] = [
   { href: "/restaurant/orders", label: "Pedidos" },
   { href: "/restaurant/tables", label: "Mesas" },
   { href: "/restaurant/menu", label: "Menu" },
+  { href: "/restaurant/help", label: "Ajuda" },
 ];
 
 export function RestaurantNav({ isOwner }: { isOwner: boolean }) {

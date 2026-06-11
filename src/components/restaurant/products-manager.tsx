@@ -378,6 +378,9 @@ function ProductForm({
         <legend className="mb-2 text-xs font-medium text-slate-600">
           Alergénios (códigos UE estáveis; os nomes são traduzidos automaticamente no menu)
         </legend>
+        <p className="mb-2 text-xs text-slate-500">
+          A informação de alergénios deve ser validada pelo restaurante antes de publicar o menu.
+        </p>
         <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 lg:grid-cols-4">
           {ALLERGEN_CODES.map((code) => (
             <label key={code} className="flex items-center gap-2 text-xs text-slate-700">

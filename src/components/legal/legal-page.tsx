@@ -22,12 +22,15 @@ export function LegalPage({
             Table<span className="text-amber-600">Order</span>
           </Link>
           <div className="flex items-center gap-3">
-            <nav className="flex gap-4 text-xs text-slate-500">
-              <Link href="/terms" className="hover:text-slate-900">
+            <nav className="flex flex-wrap gap-4 text-xs text-slate-500">
+              <Link href="/legal/terms" className="hover:text-slate-900">
                 {t.terms}
               </Link>
-              <Link href="/privacy" className="hover:text-slate-900">
+              <Link href="/legal/privacy" className="hover:text-slate-900">
                 {t.privacy}
+              </Link>
+              <Link href="/legal/support" className="hover:text-slate-900">
+                Suporte
               </Link>
               <Link href="/allergen-disclaimer" className="hover:text-slate-900">
                 {t.allergens}
